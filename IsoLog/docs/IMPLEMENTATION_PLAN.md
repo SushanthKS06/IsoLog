@@ -777,23 +777,3 @@ d:\Project_IsoLog\IsoLog\
 
 ---
 
-## User Review Required
-
-> [!IMPORTANT]
-> **Blockchain Implementation Choice:** For initial version, I recommend the **local SQLite chain** approach for simplicity and portability. Hyperledger Fabric or Tendermint can be added as optional modules later. Please confirm this approach.
-
-> [!WARNING]
-> **PCAP Processing:** Network flow extraction from PCAP files can be resource-intensive. Should this be included in the initial version or deferred to a later phase?
-
-> [!CAUTION]
-> **ML Model Training:** Initial unsupervised models require sufficient baseline data (recommended: 7+ days). The system should have a "learning mode" before enabling ML-based detection. Do you agree with this approach?
-
-**Questions for Clarification:**
-
-1. **Frontend Framework:** React (stable, mature) or SvelteKit (lighter, modern)? I recommend **React** for broader ecosystem support.
-
-2. **Primary Platform:** While cross-platform is the goal, which OS will be the primary deployment target for initial development?
-
-3. **Agent Architecture:** Should we prioritize the agent-based forwarding component, or focus on direct file/syslog ingestion first?
-
-4. **Authentication:** For isolated environments, is local authentication required, or should the dashboard be accessible without login?
