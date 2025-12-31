@@ -1,0 +1,39 @@
+title: Suspicious PowerShell Command Line
+id: 1f2e3d4c-5b6a-7e8f-9c0d-1a2b3c4d5e6f
+status: stable
+description: Detects suspicious PowerShell command line arguments often used by attackers
+author: IsoLog Team
+date: 2024/01/01
+references:
+  - https://attack.mitre.org/techniques/T1059/001/
+logsource:
+  category: process
+  product: windows
+detection:
+  selection_encoded:
+    process.command_line|contains:
+      - "-enc"
+      - "-EncodedCommand"
+      - "-e "
+  selection_bypass:
+    process.command_line|contains:
+      - "-ExecutionPolicy Bypass"
+      - "-ep bypass"
+      - "-nop"
+  selection_download:
+    process.command_line|contains:
+      - "DownloadString"
+      - "DownloadFile"
+      - "Invoke-WebRequest"
+      - "IWR "
+      - "curl "
+      - "wget "
+  condition: selection_encoded or selection_bypass or selection_download
+falsepositives:
+  - Legitimate administrative scripts
+  - Software deployment tools
+level: high
+tags:
+  - attack.execution
+  - attack.t1059
+  - attack.t1059.001

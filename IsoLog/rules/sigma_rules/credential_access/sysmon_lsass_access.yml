@@ -1,0 +1,32 @@
+title: Suspicious Process Access to LSASS (Sysmon)
+id: sysmon_lsass_access
+status: experimental
+description: Detects suspicious process access to LSASS via Sysmon Event ID 10
+author: IsoLog
+references:
+  - https://attack.mitre.org/techniques/T1003/001/
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    EventID: 10
+    TargetImage|endswith:
+      - '\lsass.exe'
+  filter_legit:
+    SourceImage|endswith:
+      - '\csrss.exe'
+      - '\wininit.exe'
+      - '\wmiprvse.exe'
+      - '\svchost.exe'
+      - '\MsMpEng.exe'
+      - '\taskmgr.exe'
+  condition: selection and not filter_legit
+falsepositives:
+  - Security software
+  - Debugging tools
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1003
+  - attack.t1003.001

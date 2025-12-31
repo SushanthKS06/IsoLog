@@ -1,0 +1,49 @@
+title: SAM Database Credential Extraction
+id: sam_database_extraction
+status: experimental
+description: Detects SAM database credential extraction via Mimikatz, reg.exe, or other tools
+author: IsoLog
+references:
+    - https://attack.mitre.org/techniques/T1003/002/
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection_mimikatz_sam:
+        CommandLine|contains:
+            - "lsadump::sam"
+            - "token::elevate"
+            - "privilege::debug"
+    selection_reg_save:
+        CommandLine|contains|all:
+            - "reg"
+            - "save"
+        CommandLine|contains:
+            - "sam"
+            - "SAM"
+            - "security"
+            - "SECURITY"
+            - "system"
+            - "SYSTEM"
+    selection_shadow_copy:
+        CommandLine|contains|all:
+            - "vssadmin"
+            - "create"
+    selection_secretsdump:
+        CommandLine|contains:
+            - "secretsdump"
+            - "impacket"
+            - "ntdsutil"
+    selection_powerdump:
+        CommandLine|contains:
+            - "Invoke-PowerDump"
+            - "Get-BootKey"
+            - "Get-SAMHash"
+    condition: selection_mimikatz_sam or selection_reg_save or selection_shadow_copy or selection_secretsdump or selection_powerdump
+falsepositives:
+    - System backup operations
+level: critical
+tags:
+    - attack.credential_access
+    - attack.t1003
+    - attack.t1003.002

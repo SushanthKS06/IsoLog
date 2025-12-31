@@ -1,0 +1,37 @@
+title: DPAPI Backup Key Access
+id: dpapi_backup_keys
+status: experimental
+description: Detects access to DPAPI backup keys via Mimikatz or LSA secrets dump
+author: IsoLog
+references:
+  - https://attack.mitre.org/techniques/T1003/004/
+  - https://www.dsinternals.com/en/retrieving-dpapi-backup-keys-from-active-directory/
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_mimikatz:
+    CommandLine|contains:
+      - "lsadump::backupkeys"
+      - "dpapi::chrome"
+      - "dpapi::cred"
+      - "dpapi::vault"
+      - "dpapi::wifi"
+      - "dpapi::masterkey"
+      - "dpapi::blob"
+      - "sekurlsa::dpapi"
+      - "lsadump::secrets"
+      - "lsadump::cache"
+  selection_rpc:
+    CommandLine|contains:
+      - "LsarRetrievePrivateData"
+      - "BackupKey"
+      - "BCKUPKEY"
+  condition: selection_mimikatz or selection_rpc
+falsepositives:
+  - Legitimate backup key access by authorized admins
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1003
+  - attack.t1003.004

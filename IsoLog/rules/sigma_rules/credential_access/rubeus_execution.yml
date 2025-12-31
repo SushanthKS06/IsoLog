@@ -1,0 +1,48 @@
+title: Rubeus Kerberos Tool Execution
+id: rubeus_execution
+status: experimental
+description: Detects Rubeus tool execution for Kerberos ticket manipulation
+author: IsoLog
+references:
+  - https://attack.mitre.org/techniques/T1003/003/
+  - https://github.com/GhostPack/Rubeus
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_cmd:
+    CommandLine|contains:
+      - "asktgt"
+      - "asktgs"
+      - "asreproast"
+      - "kerberoast"
+      - "createnetonly"
+      - "ptt"
+      - "purge"
+      - "describe"
+      - "klist"
+      - "triage"
+      - "dump /service:krbtgt"
+      - "renew"
+      - "s4u"
+      - "brute"
+      - "harvest"
+  selection_process:
+    Image|endswith:
+      - '\Rubeus.exe'
+    OriginalFileName:
+      - "Rubeus.exe"
+  selection_powershell:
+    CommandLine|contains:
+      - "Invoke-Rubeus"
+      - "[Rubeus."
+  condition: selection_cmd or selection_process or selection_powershell
+falsepositives:
+  - Red team exercises
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1003
+  - attack.t1003.003
+  - attack.t1558
+  - attack.t1558.003

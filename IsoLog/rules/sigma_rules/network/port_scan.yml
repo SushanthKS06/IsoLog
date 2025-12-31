@@ -1,0 +1,22 @@
+title: Firewall Block - Port Scan Detection
+id: 2a3b4c5d-6e7f-8901-2345-6789abcdef01
+status: stable
+description: Detects potential port scanning activity based on multiple blocked connections
+author: IsoLog Team
+date: 2024/01/01
+references:
+  - https://attack.mitre.org/techniques/T1046/
+logsource:
+  category: network
+  product: firewall
+detection:
+  selection:
+    event.action: "connection_blocked"
+  condition: selection
+falsepositives:
+  - Legitimate network scanning tools
+  - Misconfigured applications
+level: low
+tags:
+  - attack.discovery
+  - attack.t1046

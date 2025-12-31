@@ -1,0 +1,94 @@
+# IsoLog Configuration
+
+# Server settings
+server:
+  host: "0.0.0.0"
+  port: 8000
+  debug: false
+  workers: 4
+
+# Database settings
+database:
+  path: "data/isolog.db"
+  echo: false
+
+# Search index settings
+search:
+  index_path: "data/search_index"
+  
+# Ingestion settings
+ingestion:
+  syslog:
+    enabled: true
+    udp_port: 514
+    tcp_port: 514
+  file_watcher:
+    enabled: true
+    watch_paths:
+      - "data/logs"
+    patterns:
+      - "*.log"
+      - "*.txt"
+      - "*.json"
+  usb_import:
+    enabled: true
+    mount_paths: []
+
+# Parser settings
+parsers:
+  default_timezone: "UTC"
+  max_line_length: 65536
+
+# Detection settings
+detection:
+  sigma:
+    enabled: true
+    rules_path: "rules/sigma_rules"
+  mitre:
+    enabled: true
+    attack_json_path: "rules/mitre_mapping/attack.json"
+  anomaly:
+    enabled: true
+    models_path: "models"
+    threshold: 0.85
+  scoring:
+    sigma_weight: 0.4
+    mitre_weight: 0.2
+    ml_weight: 0.3
+    heuristic_weight: 0.1
+
+# ML settings
+ml:
+  initial_training_days: 7
+  retrain_interval_hours: 24
+  min_events_for_training: 1000
+  
+# Blockchain settings
+blockchain:
+  enabled: true
+  batch_size: 1000
+  batch_interval_seconds: 300
+  ledger_path: "data/blockchain.db"
+
+# Reporting settings
+reporting:
+  output_path: "data/reports"
+  templates_path: "backend/reporting/templates"
+
+# Authentication (optional for isolated environments)
+auth:
+  enabled: false
+  jwt_secret: "change-this-in-production"
+  token_expiry_hours: 24
+
+# Logging
+logging:
+  level: "INFO"
+  file_path: "logs/isolog.log"
+  max_size_mb: 100
+  backup_count: 5
+
+# Update mechanism
+updates:
+  public_key: ""  # Ed25519 public key for verifying updates
+  auto_apply: false

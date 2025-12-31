@@ -1,0 +1,26 @@
+title: Brute Force Attack - Multiple Failed Logins
+id: 0e1e1b6a-5c4d-4e3f-8b2a-1f0e9d8c7b6a
+status: stable
+description: Detects multiple failed login attempts which may indicate brute force attack
+author: IsoLog Team
+date: 2024/01/01
+references:
+  - https://attack.mitre.org/techniques/T1110/
+logsource:
+  category: authentication
+  product: linux
+detection:
+  selection:
+    event.action:
+      - "ssh_login"
+      - "logon_failed"
+    event.outcome: "failure"
+  condition: selection
+falsepositives:
+  - Users mistyping passwords
+  - Password managers with incorrect saved credentials
+level: medium
+tags:
+  - attack.credential_access
+  - attack.t1110
+  - attack.t1110.001

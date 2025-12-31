@@ -1,0 +1,42 @@
+title: Mimikatz Command Line Detection
+id: mimikatz_cmd
+status: experimental
+description: Detects Mimikatz tool execution via command line arguments
+author: IsoLog
+references:
+  - https://attack.mitre.org/techniques/T1003/
+  - https://github.com/gentilkiwi/mimikatz
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_cmd:
+    CommandLine|contains:
+      - "sekurlsa::"
+      - "kerberos::"
+      - "crypto::"
+      - "vault::cred"
+      - "lsadump::"
+      - "dpapi::"
+      - "privilege::debug"
+      - "token::elevate"
+      - "logonpasswords"
+      - "dcsync"
+      - "mimikatz"
+  selection_process:
+    Image|endswith:
+      - '\mimikatz.exe'
+      - '\mimi.exe'
+    OriginalFileName:
+      - "mimikatz.exe"
+  condition: selection_cmd or selection_process
+falsepositives:
+  - Security testing with legitimate tools
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1003
+  - attack.t1003.001
+  - attack.t1003.002
+  - attack.t1003.004
+  - attack.t1003.006

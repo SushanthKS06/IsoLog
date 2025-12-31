@@ -1,0 +1,31 @@
+title: LSASS Memory Access
+id: lsass_memory_access
+status: experimental
+description: Detects process accessing LSASS memory, typical for credential dumping tools like Mimikatz
+author: IsoLog
+references:
+    - https://attack.mitre.org/techniques/T1003/001/
+logsource:
+    category: process_access
+    product: windows
+detection:
+    selection:
+        TargetImage|endswith: '\lsass.exe'
+    selection_access:
+        GrantedAccess|contains:
+            - '0x1010'
+            - '0x1038'
+            - '0x1410'
+            - '0x1418'
+            - '0x1F0FFF'
+            - '0x1F1FFF'
+            - '0x143A'
+            - '0x1fffff'
+    condition: selection and selection_access
+falsepositives:
+    - Legitimate security tools
+level: high
+tags:
+    - attack.credential_access
+    - attack.t1003
+    - attack.t1003.001

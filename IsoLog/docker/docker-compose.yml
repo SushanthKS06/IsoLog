@@ -1,0 +1,48 @@
+# IsoLog Docker Compose Configuration
+
+version: '3.8'
+
+services:
+  isolog-backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: isolog-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - isolog-data:/app/data
+      - isolog-logs:/app/logs
+      - isolog-models:/app/models
+      - ../rules:/app/rules:ro
+    environment:
+      - ISOLOG_SERVER__HOST=0.0.0.0
+      - ISOLOG_SERVER__PORT=8000
+      - ISOLOG_DATABASE__PATH=/app/data/isolog.db
+      - ISOLOG_BLOCKCHAIN__LEDGER_PATH=/app/data/blockchain.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  isolog-frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: isolog-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - isolog-backend
+    restart: unless-stopped
+
+volumes:
+  isolog-data:
+  isolog-logs:
+  isolog-models:
+
+networks:
+  default:
+    name: isolog-network

@@ -1,0 +1,40 @@
+title: Kerberos Key Extraction
+id: kerberos_key_extraction
+status: experimental
+description: Detects Kerberos key extraction via Mimikatz lsadump or sekurlsa modules
+author: IsoLog
+references:
+  - https://attack.mitre.org/techniques/T1003/004/
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_sekurlsa:
+    CommandLine|contains:
+      - "sekurlsa::ekeys"
+      - "sekurlsa::kerberos"
+      - "sekurlsa::tspkg"
+      - "sekurlsa::livessp"
+      - "sekurlsa::wdigest"
+      - "sekurlsa::ssp"
+      - "crypto::cng"
+      - "crypto::capi"
+  selection_lsadump:
+    CommandLine|contains:
+      - "lsadump::secrets"
+      - "lsadump::cache"
+      - "lsadump::lsa"
+      - "lsadump::trust"
+      - "lsadump::backupkeys"
+      - "lsadump::setntlm"
+      - "kerberos::list"
+      - "kerberos::tgt"
+      - "kerberos::ptt"
+  condition: selection_sekurlsa or selection_lsadump
+falsepositives:
+  - Security testing
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1003
+  - attack.t1003.004
