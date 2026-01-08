@@ -1,17 +1,11 @@
-"""
-Tests for API endpoints.
-"""
 
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 
-
 class TestHealthEndpoint:
-    """Test health check endpoint."""
     
     def test_health_check(self):
-        # Import here to avoid issues if app not fully configured
         from backend.api.main import create_app
         
         app = create_app()
@@ -23,9 +17,7 @@ class TestHealthEndpoint:
         data = response.json()
         assert data["status"] == "healthy"
 
-
 class TestEventsAPI:
-    """Tests for events API."""
     
     @pytest.fixture
     def client(self):
@@ -48,9 +40,7 @@ class TestEventsAPI:
         assert "events" in data
         assert "total" in data
 
-
 class TestAlertsAPI:
-    """Tests for alerts API."""
     
     @pytest.fixture
     def client(self):
@@ -72,9 +62,7 @@ class TestAlertsAPI:
         data = response.json()
         assert "critical" in data or "total" in data
 
-
 class TestDashboardAPI:
-    """Tests for dashboard API."""
     
     @pytest.fixture
     def client(self):
@@ -92,9 +80,7 @@ class TestDashboardAPI:
         
         assert response.status_code == 200
 
-
 class TestSearchAPI:
-    """Tests for search API."""
     
     @pytest.fixture
     def client(self):
@@ -110,9 +96,7 @@ class TestSearchAPI:
         
         assert response.status_code == 200
 
-
 class TestSystemAPI:
-    """Tests for system API."""
     
     @pytest.fixture
     def client(self):

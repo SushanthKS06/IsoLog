@@ -1,8 +1,3 @@
-"""
-IsoLog MITRE ATT&CK Mapper
-
-Maps detections to MITRE ATT&CK tactics and techniques.
-"""
 
 import json
 import logging
@@ -14,15 +9,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-
 class MitreMapper:
-    """
-    Maps detections to MITRE ATT&CK framework.
     
-    Uses embedded ATT&CK Enterprise matrix data.
-    """
-    
-    # Tactic order in ATT&CK matrix
     TACTIC_ORDER = [
         "reconnaissance",
         "resource-development",
@@ -40,7 +28,6 @@ class MitreMapper:
         "impact",
     ]
     
-    # Common technique keywords for auto-mapping
     TECHNIQUE_KEYWORDS = {
         "T1110": ["brute force", "password spray", "credential stuffing"],
         "T1059": ["powershell", "cmd", "bash", "script", "command"],
@@ -57,18 +44,11 @@ class MitreMapper:
     }
     
     def __init__(self, attack_json_path: Optional[str] = None):
-        """
-        Initialize MITRE mapper.
-        
-        Args:
-            attack_json_path: Path to ATT&CK STIX JSON file
-        """
         self.attack_json_path = Path(attack_json_path) if attack_json_path else None
         self.techniques: Dict[str, Dict[str, Any]] = {}
         self.tactics: Dict[str, Dict[str, Any]] = {}
     
     def load(self):
-        """Load MITRE ATT&CK data."""
         if self.attack_json_path and self.attack_json_path.exists():
             try:
                 self._load_from_file()
@@ -77,12 +57,10 @@ class MitreMapper:
             except Exception as e:
                 logger.warning(f"Failed to load ATT&CK JSON: {e}")
         
-        # Use embedded minimal data
         self._load_embedded_data()
         logger.info("Using embedded MITRE ATT&CK data")
     
     def _load_from_file(self):
-        """Load from ATT&CK STIX JSON file."""
         with open(self.attack_json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         
@@ -90,7 +68,6 @@ class MitreMapper:
             obj_type = obj.get("type")
             
             if obj_type == "attack-pattern":
-                # Technique
                 external_refs = obj.get("external_references", [])
                 tech_id = None
                 for ref in external_refs:
@@ -114,7 +91,6 @@ class MitreMapper:
                     }
             
             elif obj_type == "x-mitre-tactic":
-                # Tactic
                 external_refs = obj.get("external_references", [])
                 tactic_id = None
                 for ref in external_refs:
@@ -131,8 +107,6 @@ class MitreMapper:
                     }
     
     def _load_embedded_data(self):
-        """Load minimal embedded ATT&CK data."""
-        # Essential techniques for common detections
         self.techniques = {
             "T1110": {"id": "T1110", "name": "Brute Force", "tactics": ["credential-access"]},
             "T1059": {"id": "T1059", "name": "Command and Scripting Interpreter", "tactics": ["execution"]},
@@ -174,13 +148,6 @@ class MitreMapper:
         }
     
     def enrich_detection(self, detection: "Detection"):
-        """
-        Enrich detection with MITRE ATT&CK mapping.
-        
-        Args:
-            detection: Detection to enrich
-        """
-        # Ensure technique format is correct
         normalized_techniques = []
         for tech in detection.mitre_techniques:
             tech_upper = tech.upper()
@@ -189,7 +156,6 @@ class MitreMapper:
             normalized_techniques.append(tech_upper)
         detection.mitre_techniques = normalized_techniques
         
-        # Look up tactics from techniques
         for tech_id in detection.mitre_techniques:
             if tech_id in self.techniques:
                 tech_data = self.techniques[tech_id]
@@ -197,12 +163,10 @@ class MitreMapper:
                     if tactic not in detection.mitre_tactics:
                         detection.mitre_tactics.append(tactic)
         
-        # Auto-map if no techniques specified
         if not detection.mitre_techniques:
             self._auto_map_techniques(detection)
     
     def _auto_map_techniques(self, detection: "Detection"):
-        """Auto-map techniques based on rule name/description."""
         text = f"{detection.rule_name} {detection.rule_description}".lower()
         
         for tech_id, keywords in self.TECHNIQUE_KEYWORDS.items():
@@ -210,7 +174,6 @@ class MitreMapper:
                 if keyword in text:
                     if tech_id not in detection.mitre_techniques:
                         detection.mitre_techniques.append(tech_id)
-                        # Add tactics
                         if tech_id in self.techniques:
                             for tactic in self.techniques[tech_id].get("tactics", []):
                                 if tactic not in detection.mitre_tactics:
@@ -218,15 +181,12 @@ class MitreMapper:
                     break
     
     def get_technique(self, tech_id: str) -> Optional[Dict[str, Any]]:
-        """Get technique details by ID."""
         return self.techniques.get(tech_id.upper())
     
     def get_tactic(self, tactic_name: str) -> Optional[Dict[str, Any]]:
-        """Get tactic details by short name."""
         return self.tactics.get(tactic_name.lower())
     
     def get_matrix_data(self) -> Dict[str, Any]:
-        """Get data for MITRE ATT&CK matrix visualization."""
         matrix = []
         
         for tactic_name in self.TACTIC_ORDER:
@@ -234,7 +194,6 @@ class MitreMapper:
             if not tactic_data:
                 continue
             
-            # Get techniques for this tactic
             tactic_techniques = [
                 {"id": tech_id, "name": tech_data["name"]}
                 for tech_id, tech_data in self.techniques.items()

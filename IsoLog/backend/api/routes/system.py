@@ -1,6 +1,3 @@
-"""
-IsoLog System API Routes
-"""
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
@@ -8,17 +5,13 @@ from typing import Dict, Any
 
 router = APIRouter()
 
-
 class SystemStatusResponse(BaseModel):
-    """System status response."""
     status: str
     version: str
     components: Dict[str, Any]
 
-
 @router.get("/status")
 async def get_system_status(request: Request):
-    """Get system health status."""
     from ... import __version__
     
     components = {
@@ -27,7 +20,6 @@ async def get_system_status(request: Request):
         "blockchain": "unknown",
     }
     
-    # Check detection engine
     detection_engine = getattr(request.app.state, "detection_engine", None)
     if detection_engine:
         stats = detection_engine.get_stats()
@@ -36,7 +28,6 @@ async def get_system_status(request: Request):
             **stats,
         }
     
-    # Check blockchain
     chain_manager = getattr(request.app.state, "chain_manager", None)
     if chain_manager:
         components["blockchain"] = {
@@ -52,10 +43,8 @@ async def get_system_status(request: Request):
         components=components,
     )
 
-
 @router.get("/config")
 async def get_system_config():
-    """Get non-sensitive system configuration."""
     from ...config import get_settings
     
     settings = get_settings()
@@ -82,10 +71,8 @@ async def get_system_config():
         },
     }
 
-
 @router.get("/detection/stats")
 async def get_detection_stats(request: Request):
-    """Get detection engine statistics."""
     detection_engine = getattr(request.app.state, "detection_engine", None)
     
     if not detection_engine:
@@ -93,10 +80,8 @@ async def get_detection_stats(request: Request):
     
     return detection_engine.get_stats()
 
-
 @router.get("/mitre/matrix")
 async def get_mitre_matrix(request: Request):
-    """Get MITRE ATT&CK matrix data for visualization."""
     detection_engine = getattr(request.app.state, "detection_engine", None)
     
     if detection_engine and detection_engine._mitre_mapper:
@@ -104,10 +89,8 @@ async def get_mitre_matrix(request: Request):
     
     return {"matrix": [], "message": "MITRE mapper not available"}
 
-
 @router.post("/reload-rules")
 async def reload_rules(request: Request):
-    """Reload detection rules."""
     detection_engine = getattr(request.app.state, "detection_engine", None)
     
     if not detection_engine:

@@ -1,9 +1,3 @@
-"""
-Mordor/OTRF Security-Datasets Parser
-
-Parses Windows Security Events from Security-Datasets (Mordor) JSON format.
-These are typically Windows Event Log events exported from Sysmon or Security logs.
-"""
 
 import json
 import logging
@@ -14,14 +8,7 @@ from ..base_parser import BaseParser, ParsedEvent
 
 logger = logging.getLogger(__name__)
 
-
 class MordorParser(BaseParser):
-    """
-    Parser for OTRF Security-Datasets (Mordor) JSON format.
-    
-    These datasets contain Windows Event Logs exported as JSON,
-    typically from Sysmon, Security, and PowerShell channels.
-    """
     
     parser_id = "mordor"
     parser_name = "Mordor Security Dataset Parser"
@@ -29,9 +16,7 @@ class MordorParser(BaseParser):
     supported_formats = ["mordor_json", "windows_event_json"]
     file_patterns = ["*.json"]
     
-    # Map Windows Event IDs to actions and categories
     EVENT_ID_MAP = {
-        # Sysmon Events
         1: ("process_start", ["process"]),
         3: ("network_connection", ["network"]),
         7: ("image_load", ["process"]),
@@ -43,7 +28,6 @@ class MordorParser(BaseParser):
         15: ("file_stream_create", ["file"]),
         22: ("dns_query", ["network"]),
         23: ("file_delete", ["file"]),
-        # Windows Security Events
         4624: ("user_login", ["authentication", "iam"]),
         4625: ("logon_failure", ["authentication", "iam"]),
         4648: ("explicit_credentials", ["authentication"]),
@@ -64,10 +48,8 @@ class MordorParser(BaseParser):
     }
     
     def can_parse(self, raw_log: str) -> bool:
-        """Check if this looks like a Mordor JSON event."""
         try:
             data = json.loads(raw_log)
-            # Mordor events typically have these Windows-specific fields
             return any(key in data for key in [
                 "TimeCreated", "@timestamp", "EventID", 
                 "Channel", "Computer", "Provider"
@@ -76,7 +58,6 @@ class MordorParser(BaseParser):
             return False
     
     def parse(self, raw_log: str, source_type: Optional[str] = None) -> Optional[ParsedEvent]:
-        """Parse a single Mordor JSON event."""
         try:
             if isinstance(raw_log, dict):
                 data = raw_log
@@ -88,17 +69,13 @@ class MordorParser(BaseParser):
         return self._parse_event(data, source_type)
     
     def parse_dict(self, data: Dict[str, Any], source_type: Optional[str] = None) -> Optional[ParsedEvent]:
-        """Parse a dictionary directly (for pre-loaded JSON)."""
         return self._parse_event(data, source_type)
     
     def _parse_event(self, data: Dict[str, Any], source_type: Optional[str]) -> Optional[ParsedEvent]:
-        """Internal parsing logic."""
-        # Extract timestamp
         timestamp = self._extract_timestamp(data)
         if not timestamp:
             timestamp = datetime.utcnow()
         
-        # Extract Event ID and map to action/category
         event_id = data.get("EventID") or data.get("event_id")
         if isinstance(event_id, dict):
             event_id = event_id.get("Value")
@@ -106,7 +83,6 @@ class MordorParser(BaseParser):
         
         action, categories = self.EVENT_ID_MAP.get(event_id, ("unknown", ["host"]))
         
-        # Build ParsedEvent
         event = ParsedEvent(
             timestamp=timestamp,
             event_kind="event",
@@ -135,7 +111,6 @@ class MordorParser(BaseParser):
         return event
     
     def _extract_timestamp(self, data: Dict[str, Any]) -> Optional[datetime]:
-        """Extract timestamp from various possible fields."""
         for field in ["@timestamp", "TimeCreated", "UtcTime", "timestamp"]:
             value = data.get(field)
             if value:
@@ -143,11 +118,9 @@ class MordorParser(BaseParser):
                     value = value.get("SystemTime") or value.get("#text")
                 if value:
                     try:
-                        # Handle ISO format
                         if isinstance(value, str):
                             value = value.replace("Z", "+00:00")
                             if "." in value:
-                                # Truncate microseconds if too long
                                 parts = value.split(".")
                                 if "+" in parts[1]:
                                     frac, tz = parts[1].split("+")
@@ -164,19 +137,15 @@ class MordorParser(BaseParser):
         return None
     
     def _determine_outcome(self, data: Dict[str, Any]) -> str:
-        """Determine event outcome."""
         event_id = data.get("EventID")
         if isinstance(event_id, dict):
             event_id = event_id.get("Value")
         
-        # Failed login events
         if event_id in [4625, 4771, 4776]:
             return "failure"
-        # Successful login events
         if event_id in [4624, 4648]:
             return "success"
         
-        # Check for explicit status
         status = data.get("Status") or data.get("Keywords")
         if status:
             status_str = str(status).lower()
@@ -188,18 +157,15 @@ class MordorParser(BaseParser):
         return "unknown"
     
     def _extract_user(self, data: Dict[str, Any]) -> Optional[str]:
-        """Extract username from various possible fields."""
         for field in ["TargetUserName", "SubjectUserName", "User", "UserName", "user"]:
             if data.get(field):
                 user = data[field]
-                # Skip system accounts for target if subject exists
                 if field == "TargetUserName" and user in ["-", "SYSTEM", "LOCAL SERVICE"]:
                     continue
                 return user
         return None
     
     def _extract_ip_field(self, data: Dict[str, Any], fields: List[str]) -> Optional[str]:
-        """Extract IP from possible field names."""
         for field in fields:
             if data.get(field):
                 ip = data[field]
@@ -208,14 +174,12 @@ class MordorParser(BaseParser):
         return None
     
     def _extract_port_field(self, data: Dict[str, Any], fields: List[str]) -> Optional[int]:
-        """Extract port from possible field names."""
         for field in fields:
             if data.get(field):
                 return self._safe_int(data[field])
         return None
     
     def _extract_filename(self, data: Dict[str, Any]) -> Optional[str]:
-        """Extract filename from path."""
         for field in ["ObjectName", "TargetFilename", "Image", "NewProcessName"]:
             path = data.get(field)
             if path and isinstance(path, str):
@@ -223,27 +187,17 @@ class MordorParser(BaseParser):
         return None
     
     def _build_extra_fields(self, data: Dict[str, Any], event_id: Optional[int]) -> Dict[str, Any]:
-        """
-        Build extra fields dict containing ALL raw Windows fields.
-        
-        This is critical for Sigma rule matching - rules reference original
-        Windows field names like EventID, ObjectName, TargetImage, etc.
-        """
-        # Start with all raw data (for Sigma matching)
         extra = dict(data)
         
-        # Add normalized event_id
         extra["event_id"] = event_id
         extra["EventID"] = event_id  # Also as uppercase for Sigma rules
         
-        # Ensure common fields are available at top level
         extra["Channel"] = data.get("Channel")
         extra["Provider"] = data.get("Provider") if isinstance(data.get("Provider"), str) else data.get("Provider", {}).get("Name")
         
         return extra
     
     def _safe_int(self, value: Any) -> Optional[int]:
-        """Safely convert to int."""
         if value is None:
             return None
         try:

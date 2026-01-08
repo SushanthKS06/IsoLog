@@ -1,3 +1,0 @@
-"""
-IsoLog Backend Tests Package
-"""

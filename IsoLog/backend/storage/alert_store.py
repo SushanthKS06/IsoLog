@@ -1,8 +1,3 @@
-"""
-IsoLog Alert Store
-
-Data access layer for alert operations.
-"""
 
 import json
 import logging
@@ -18,33 +13,12 @@ from ..utils import generate_uuid
 
 logger = logging.getLogger(__name__)
 
-
 class AlertStore:
-    """
-    Data access layer for detection alerts.
-    
-    Provides methods for storing, querying, and managing alerts.
-    """
     
     def __init__(self, session: AsyncSession):
-        """
-        Initialize alert store.
-        
-        Args:
-            session: SQLAlchemy async session
-        """
         self.session = session
     
     async def create(self, alert_data: Dict[str, Any]) -> Alert:
-        """
-        Create a new alert.
-        
-        Args:
-            alert_data: Alert data dictionary
-            
-        Returns:
-            Created Alert object
-        """
         alert_id = alert_data.get("id") or generate_uuid()
         
         alert = Alert(
@@ -69,16 +43,6 @@ class AlertStore:
         return alert
     
     async def get_by_id(self, alert_id: str, include_event: bool = False) -> Optional[Alert]:
-        """
-        Get alert by ID.
-        
-        Args:
-            alert_id: Alert ID
-            include_event: Whether to load related event
-            
-        Returns:
-            Alert object or None
-        """
         query = select(Alert).where(Alert.id == alert_id)
         
         if include_event:
@@ -100,24 +64,6 @@ class AlertStore:
         offset: int = 0,
         include_event: bool = False,
     ) -> List[Alert]:
-        """
-        Query alerts with filters.
-        
-        Args:
-            start_time: Filter alerts after this time
-            end_time: Filter alerts before this time
-            severity: Filter by severity
-            status: Filter by status
-            rule_id: Filter by rule ID
-            detection_type: Filter by detection type
-            min_threat_score: Minimum threat score
-            limit: Maximum results
-            offset: Results offset
-            include_event: Load related events
-            
-        Returns:
-            List of matching alerts
-        """
         query = select(Alert)
         
         conditions = []
@@ -153,16 +99,6 @@ class AlertStore:
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
     ) -> Dict[str, int]:
-        """
-        Count alerts by severity.
-        
-        Args:
-            start_time: Count alerts after this time
-            end_time: Count alerts before this time
-            
-        Returns:
-            Dictionary of severity -> count
-        """
         conditions = []
         if start_time:
             conditions.append(Alert.created_at >= start_time)
@@ -177,7 +113,6 @@ class AlertStore:
             .group_by(Alert.severity)
         )
         
-        # Initialize with all severities
         counts = {
             "critical": 0,
             "high": 0,
@@ -197,16 +132,6 @@ class AlertStore:
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
     ) -> Dict[str, Any]:
-        """
-        Get MITRE ATT&CK statistics for heatmap.
-        
-        Args:
-            start_time: Stats from this time
-            end_time: Stats until this time
-            
-        Returns:
-            Statistics with tactic and technique counts
-        """
         conditions = []
         if start_time:
             conditions.append(Alert.created_at >= start_time)
@@ -244,17 +169,6 @@ class AlertStore:
         acknowledged_by: str,
         status: str = "acknowledged",
     ) -> Optional[Alert]:
-        """
-        Acknowledge an alert.
-        
-        Args:
-            alert_id: Alert ID
-            acknowledged_by: User who acknowledged
-            status: New status
-            
-        Returns:
-            Updated alert or None
-        """
         await self.session.execute(
             update(Alert)
             .where(Alert.id == alert_id)
@@ -268,16 +182,6 @@ class AlertStore:
         return await self.get_by_id(alert_id)
     
     async def update_status(self, alert_id: str, status: str) -> Optional[Alert]:
-        """
-        Update alert status.
-        
-        Args:
-            alert_id: Alert ID
-            status: New status
-            
-        Returns:
-            Updated alert or None
-        """
         await self.session.execute(
             update(Alert)
             .where(Alert.id == alert_id)
@@ -292,18 +196,6 @@ class AlertStore:
         end_time: datetime,
         bucket_minutes: int = 60,
     ) -> List[Dict[str, Any]]:
-        """
-        Get alert timeline for visualization.
-        
-        Args:
-            start_time: Timeline start
-            end_time: Timeline end
-            bucket_minutes: Time bucket size
-            
-        Returns:
-            List of time buckets with counts by severity
-        """
-        # Query all alerts in range
         result = await self.session.execute(
             select(Alert.created_at, Alert.severity)
             .where(and_(
@@ -313,7 +205,6 @@ class AlertStore:
             .order_by(Alert.created_at)
         )
         
-        # Bucket the results
         from datetime import timedelta
         
         buckets: Dict[datetime, Dict[str, int]] = {}
@@ -334,7 +225,6 @@ class AlertStore:
             alert_time = row[0]
             severity = row[1]
             
-            # Find bucket
             bucket_time = start_time + (
                 (alert_time - start_time) // bucket_delta
             ) * bucket_delta

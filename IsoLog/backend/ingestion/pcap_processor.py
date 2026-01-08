@@ -1,8 +1,3 @@
-"""
-IsoLog PCAP Processor
-
-Extract network flow metadata from PCAP files.
-"""
 
 import logging
 from dataclasses import dataclass
@@ -12,10 +7,8 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class NetworkFlow:
-    """Network flow extracted from PCAP."""
     timestamp: datetime
     source_ip: str
     source_port: int
@@ -28,22 +21,13 @@ class NetworkFlow:
     duration_ms: int
     flags: Optional[str] = None
 
-
 class PCAPProcessor:
-    """
-    Process PCAP files to extract network flow metadata.
-    
-    Note: Requires scapy for full functionality.
-    Falls back to basic parsing if scapy unavailable.
-    """
     
     def __init__(self):
-        """Initialize PCAP processor."""
         self._scapy_available = self._check_scapy()
         self._stats = {"files_processed": 0, "flows_extracted": 0}
     
     def _check_scapy(self) -> bool:
-        """Check if scapy is available."""
         try:
             from scapy.all import rdpcap
             return True
@@ -52,16 +36,6 @@ class PCAPProcessor:
             return False
     
     def process_file(self, pcap_path: str, max_packets: int = 100000) -> List[NetworkFlow]:
-        """
-        Process a PCAP file and extract network flows.
-        
-        Args:
-            pcap_path: Path to PCAP file
-            max_packets: Maximum packets to process
-            
-        Returns:
-            List of network flows
-        """
         path = Path(pcap_path)
         
         if not path.exists():
@@ -97,7 +71,6 @@ class PCAPProcessor:
                         src_port = pkt[UDP].sport
                         dst_port = pkt[UDP].dport
                     
-                    # Create flow key
                     flow_key = f"{src_ip}:{src_port}-{dst_ip}:{dst_port}-{proto}"
                     
                     if flow_key not in flows:
@@ -119,7 +92,6 @@ class PCAPProcessor:
                     flow["bytes"] += len(pkt)
                     flow["packets"] += 1
             
-            # Convert to NetworkFlow objects
             result = []
             for flow_key, flow_data in flows.items():
                 duration_ms = int((flow_data["last_seen"] - flow_data["first_seen"]) * 1000)
@@ -149,7 +121,6 @@ class PCAPProcessor:
             return []
     
     def flow_to_event(self, flow: NetworkFlow) -> Dict[str, Any]:
-        """Convert network flow to ECS-compatible event."""
         return {
             "@timestamp": flow.timestamp.isoformat(),
             "event": {
@@ -179,7 +150,6 @@ class PCAPProcessor:
         }
     
     def get_stats(self) -> Dict[str, Any]:
-        """Get processor statistics."""
         return {
             **self._stats,
             "scapy_available": self._scapy_available,

@@ -1,6 +1,3 @@
-"""
-IsoLog API Package
-"""
 
 from .main import create_app, app
 

@@ -1,6 +1,3 @@
-"""
-IsoLog API Middleware Package
-"""
 
 from .auth import AuthMiddleware, auth, create_token, get_current_user, get_optional_user
 

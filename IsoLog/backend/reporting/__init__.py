@@ -1,8 +1,3 @@
-"""
-IsoLog Reporting Package
-
-Generate reports in PDF, CSV, and JSON formats.
-"""
 
 from .generator import ReportGenerator
 from .exporters.pdf import PDFExporter

@@ -1,8 +1,3 @@
-"""
-IsoLog CSV Exporter
-
-Export data to CSV format.
-"""
 
 import csv
 import logging
@@ -12,18 +7,9 @@ from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
-
 class CSVExporter:
-    """Export data to CSV files."""
     
     def export_alerts(self, alerts: List[Dict[str, Any]], output_path: str):
-        """
-        Export alerts to CSV.
-        
-        Args:
-            alerts: Alert data
-            output_path: Output file path
-        """
         if not alerts:
             self._write_empty(output_path, ["timestamp", "severity", "rule_name", "description"])
             return
@@ -59,13 +45,6 @@ class CSVExporter:
         logger.info(f"Exported {len(alerts)} alerts to {output_path}")
     
     def export_events(self, events: List[Dict[str, Any]], output_path: str):
-        """
-        Export events to CSV.
-        
-        Args:
-            events: Event data
-            output_path: Output file path
-        """
         if not events:
             self._write_empty(output_path, ["timestamp", "host", "message"])
             return
@@ -104,13 +83,6 @@ class CSVExporter:
         logger.info(f"Exported {len(events)} events to {output_path}")
     
     def export_timeline(self, timeline: List[Dict[str, Any]], output_path: str):
-        """
-        Export timeline data to CSV.
-        
-        Args:
-            timeline: Timeline data points
-            output_path: Output file path
-        """
         if not timeline:
             self._write_empty(output_path, ["timestamp", "count"])
             return
@@ -125,13 +97,11 @@ class CSVExporter:
         logger.info(f"Exported timeline to {output_path}")
     
     def _write_empty(self, output_path: str, headers: List[str]):
-        """Write empty CSV with headers."""
         with open(output_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(headers)
     
     def _extract_nested(self, data: Dict, path: str, default: Any = "") -> Any:
-        """Extract nested value from dict using dot notation."""
         keys = path.split(".")
         value = data
         
@@ -144,7 +114,6 @@ class CSVExporter:
         return value
     
     def _flatten_list(self, value: Any) -> str:
-        """Flatten list to comma-separated string."""
         if isinstance(value, list):
             return ",".join(str(v) for v in value)
         return str(value)

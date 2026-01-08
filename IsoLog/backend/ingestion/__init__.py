@@ -1,8 +1,3 @@
-"""
-IsoLog Ingestion Package
-
-Log collection from multiple sources: syslog, files, USB, agents.
-"""
 
 from .syslog_collector import SyslogCollector
 from .file_watcher import FileWatcher

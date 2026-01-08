@@ -1,8 +1,3 @@
-"""
-IsoLog Sync Exporter
-
-Exports blockchain data and logs for syncing to central server.
-"""
 
 import json
 import logging
@@ -17,26 +12,13 @@ from .chain_manager import ChainManager
 
 logger = logging.getLogger(__name__)
 
-
 class SyncExporter:
-    """
-    Exports logs and blockchain data for central sync.
-    
-    Creates verifiable export packages for offline transfer.
-    """
     
     def __init__(
         self, 
         chain_manager: ChainManager,
         output_path: str,
     ):
-        """
-        Initialize sync exporter.
-        
-        Args:
-            chain_manager: Chain manager instance
-            output_path: Directory for export files
-        """
         self.chain = chain_manager
         self.output_path = Path(output_path)
         self.output_path.mkdir(parents=True, exist_ok=True)
@@ -49,19 +31,6 @@ class SyncExporter:
         include_events: bool = True,
         include_chain: bool = True,
     ) -> Dict[str, Any]:
-        """
-        Create sync export package.
-        
-        Args:
-            events: Events to export
-            start_block: Start block for chain export
-            end_block: End block for chain export
-            include_events: Include event data
-            include_chain: Include blockchain data
-            
-        Returns:
-            Export result with package path
-        """
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         package_name = f"isolog_sync_{timestamp}"
         package_dir = self.output_path / package_name
@@ -74,7 +43,6 @@ class SyncExporter:
             "contents": [],
         }
         
-        # Export events
         if include_events and events:
             events_file = package_dir / "events.jsonl"
             with open(events_file, "w") as f:
@@ -91,7 +59,6 @@ class SyncExporter:
                 "hash": events_hash,
             })
         
-        # Export blockchain
         if include_chain:
             blocks = self.chain.get_chain(start_block, end_block, limit=10000)
             chain_data = [
@@ -122,21 +89,17 @@ class SyncExporter:
                 "hash": chain_hash,
             })
         
-        # Create manifest
         manifest_file = package_dir / "manifest.json"
         with open(manifest_file, "w") as f:
             json.dump(manifest, f, indent=2)
         
-        # Create tar.gz archive
         archive_path = self.output_path / f"{package_name}.tar.gz"
         with tarfile.open(archive_path, "w:gz") as tar:
             tar.add(package_dir, arcname=package_name)
         
-        # Cleanup directory
         import shutil
         shutil.rmtree(package_dir)
         
-        # Create package hash
         with open(archive_path, "rb") as f:
             package_hash = HashComputer.hash_bytes(f.read())
         
@@ -150,53 +113,29 @@ class SyncExporter:
         }
     
     def _get_source_id(self) -> str:
-        """Generate unique source identifier."""
         import platform
         import uuid
         
-        # Create deterministic ID from machine info
         machine_id = f"{platform.node()}-{platform.system()}"
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, machine_id))
 
-
 class SyncImporter:
-    """
-    Imports and verifies sync packages from other nodes.
-    """
     
     def __init__(self, chain_manager: ChainManager):
-        """
-        Initialize sync importer.
-        
-        Args:
-            chain_manager: Chain manager instance
-        """
         self.chain = chain_manager
     
     def verify_package(self, package_path: str) -> Dict[str, Any]:
-        """
-        Verify a sync package integrity.
-        
-        Args:
-            package_path: Path to sync package
-            
-        Returns:
-            Verification result
-        """
         package_path = Path(package_path)
         
         if not package_path.exists():
             return {"valid": False, "error": "Package not found"}
         
-        # Extract to temp directory
         with tempfile.TemporaryDirectory() as temp_dir:
             with tarfile.open(package_path, "r:gz") as tar:
                 tar.extractall(temp_dir)
             
-            # Find extracted directory
             extracted = list(Path(temp_dir).iterdir())[0]
             
-            # Load manifest
             manifest_path = extracted / "manifest.json"
             if not manifest_path.exists():
                 return {"valid": False, "error": "Missing manifest"}
@@ -204,7 +143,6 @@ class SyncImporter:
             with open(manifest_path) as f:
                 manifest = json.load(f)
             
-            # Verify each content file
             errors = []
             for content in manifest.get("contents", []):
                 file_path = extracted / content["file"]
@@ -213,12 +151,10 @@ class SyncImporter:
                     errors.append(f"Missing file: {content['file']}")
                     continue
                 
-                # Verify hash
                 with open(file_path) as f:
                     file_content = f.read()
                 
                 if content["type"] == "events":
-                    # Parse and hash events
                     events = [json.loads(line) for line in file_content.strip().split("\n")]
                     computed_hash = HashComputer.hash_string(
                         json.dumps(events, sort_keys=True, default=str)
@@ -249,22 +185,10 @@ class SyncImporter:
         package_path: str,
         verify_continuity: bool = True,
     ) -> Dict[str, Any]:
-        """
-        Import blockchain data from package.
-        
-        Args:
-            package_path: Path to sync package
-            verify_continuity: Check chain continuity
-            
-        Returns:
-            Import result
-        """
-        # First verify
         verification = self.verify_package(package_path)
         if not verification["valid"]:
             return {"success": False, **verification}
         
-        # Extract and import
         with tempfile.TemporaryDirectory() as temp_dir:
             with tarfile.open(package_path, "r:gz") as tar:
                 tar.extractall(temp_dir)
@@ -278,7 +202,6 @@ class SyncImporter:
             with open(chain_file) as f:
                 imported_chain = json.load(f)
             
-            # Verify chain continuity
             if verify_continuity:
                 for i, block in enumerate(imported_chain):
                     if i > 0:

@@ -1,6 +1,3 @@
-"""
-Tests for log parsers.
-"""
 
 import pytest
 from datetime import datetime
@@ -12,9 +9,7 @@ from backend.parsers.formats.csv_generic import CSVGenericParser
 from backend.parsers.formats.windows_event import WindowsEventParser
 from backend.parsers.formats.firewall import FirewallParser
 
-
 class TestLinuxSyslogParser:
-    """Tests for Linux syslog parser."""
     
     @pytest.fixture
     def parser(self):
@@ -55,9 +50,7 @@ class TestLinuxSyslogParser:
         log = "This is not a valid syslog message"
         assert parser.can_parse(log) == False
 
-
 class TestJSONParser:
-    """Tests for JSON parser."""
     
     @pytest.fixture
     def parser(self):
@@ -85,9 +78,7 @@ class TestJSONParser:
         log = "not json at all"
         assert parser.can_parse(log) == False
 
-
 class TestCSVParser:
-    """Tests for CSV parser."""
     
     @pytest.fixture
     def parser(self):
@@ -98,15 +89,12 @@ class TestCSVParser:
         assert parser.can_parse(log) == True
     
     def test_parse_csv_row(self, parser):
-        # First pass header
         parser.parse("timestamp,user,action,outcome")
         event = parser.parse("2024-12-31T10:00:00,admin,login,success")
         
         assert event is not None
 
-
 class TestWindowsEventParser:
-    """Tests for Windows Event parser."""
     
     @pytest.fixture
     def parser(self):
@@ -123,9 +111,7 @@ class TestWindowsEventParser:
         assert event is not None
         assert event.hostname == "DC01"
 
-
 class TestFirewallParser:
-    """Tests for Firewall parser."""
     
     @pytest.fixture
     def parser(self):

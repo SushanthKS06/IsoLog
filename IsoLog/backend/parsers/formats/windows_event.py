@@ -1,8 +1,3 @@
-"""
-IsoLog Windows Event Parser
-
-Parses Windows Event Log format.
-"""
 
 import json
 import re
@@ -11,16 +6,7 @@ from typing import Optional
 
 from ..base_parser import BaseParser, ParsedEvent
 
-
 class WindowsEventParser(BaseParser):
-    """
-    Parser for Windows Event Log format.
-    
-    Handles:
-    - XML event log format
-    - JSON exported events
-    - Text-based event log exports
-    """
     
     parser_id = "windows_event"
     parser_name = "Windows Event Parser"
@@ -28,7 +14,6 @@ class WindowsEventParser(BaseParser):
     supported_formats = ["evtx", "windows_event"]
     file_patterns = ["*.evtx", "*Security*.log", "*System*.log"]
     
-    # Windows security event IDs
     SECURITY_EVENTS = {
         4624: ("logon_success", "authentication", "success"),
         4625: ("logon_failure", "authentication", "failure"),
@@ -54,42 +39,33 @@ class WindowsEventParser(BaseParser):
     }
     
     def can_parse(self, raw_log: str) -> bool:
-        """Check if this looks like Windows event."""
         raw_log = raw_log.strip()
         
-        # Check for XML event
         if '<Event xmlns' in raw_log or '<Event>' in raw_log:
             return True
         
-        # Check for JSON with EventID
         if raw_log.startswith('{') and '"EventID"' in raw_log:
             return True
         
-        # Check for text format with event ID
         if re.search(r'Event\s*ID:?\s*\d+', raw_log, re.IGNORECASE):
             return True
         
         return False
     
     def parse(self, raw_log: str, source_type: Optional[str] = None) -> Optional[ParsedEvent]:
-        """Parse Windows event."""
         raw_log = raw_log.strip()
         if not raw_log:
             return None
         
-        # Try JSON format first
         if raw_log.startswith('{'):
             return self._parse_json(raw_log)
         
-        # Try XML format
         if '<Event' in raw_log:
             return self._parse_xml(raw_log)
         
-        # Try text format
         return self._parse_text(raw_log)
     
     def _parse_json(self, raw_log: str) -> Optional[ParsedEvent]:
-        """Parse JSON-formatted Windows event."""
         try:
             data = json.loads(raw_log)
         except json.JSONDecodeError:
@@ -105,7 +81,6 @@ class WindowsEventParser(BaseParser):
             except (ValueError, TypeError):
                 event_id = None
         
-        # Extract timestamp
         timestamp = datetime.utcnow()
         for ts_field in ["TimeCreated", "time_created", "@timestamp", "timestamp"]:
             if ts_field in data:
@@ -119,19 +94,16 @@ class WindowsEventParser(BaseParser):
                     except ValueError:
                         continue
         
-        # Extract computer name
         computer = (
             data.get("Computer") or 
             data.get("computer") or 
             data.get("MachineName")
         )
         
-        # Extract event data
         event_data = data.get("EventData") or data.get("event_data") or {}
         if isinstance(event_data, dict):
             event_data = event_data.get("Data", event_data)
         
-        # Create event
         event = ParsedEvent(
             timestamp=timestamp,
             host_name=computer,
@@ -141,7 +113,6 @@ class WindowsEventParser(BaseParser):
             source_type=source_type or "windows_event",
         )
         
-        # Map event ID to action/category
         if event_id and event_id in self.SECURITY_EVENTS:
             action, category, outcome = self.SECURITY_EVENTS[event_id]
             event.event_action = action
@@ -149,7 +120,6 @@ class WindowsEventParser(BaseParser):
             if outcome:
                 event.event_outcome = outcome
         
-        # Extract user from event data
         if isinstance(event_data, dict):
             event.user_name = (
                 event_data.get("TargetUserName") or
@@ -171,16 +141,12 @@ class WindowsEventParser(BaseParser):
         return event
     
     def _parse_xml(self, raw_log: str) -> Optional[ParsedEvent]:
-        """Parse XML-formatted Windows event."""
-        # Simple regex-based extraction (avoid XML lib for portability)
         
-        # Extract EventID
         event_id = None
         match = re.search(r'<EventID[^>]*>(\d+)</EventID>', raw_log)
         if match:
             event_id = int(match.group(1))
         
-        # Extract TimeCreated
         timestamp = datetime.utcnow()
         match = re.search(r'SystemTime=["\']([^"\']+)["\']', raw_log)
         if match:
@@ -189,7 +155,6 @@ class WindowsEventParser(BaseParser):
             except ValueError:
                 pass
         
-        # Extract Computer
         computer = None
         match = re.search(r'<Computer>([^<]+)</Computer>', raw_log)
         if match:
@@ -203,7 +168,6 @@ class WindowsEventParser(BaseParser):
             source_type="windows_event",
         )
         
-        # Map event ID
         if event_id and event_id in self.SECURITY_EVENTS:
             action, category, outcome = self.SECURITY_EVENTS[event_id]
             event.event_action = action
@@ -216,14 +180,11 @@ class WindowsEventParser(BaseParser):
         return event
     
     def _parse_text(self, raw_log: str) -> Optional[ParsedEvent]:
-        """Parse text-formatted Windows event."""
-        # Extract event ID
         event_id = None
         match = re.search(r'Event\s*ID:?\s*(\d+)', raw_log, re.IGNORECASE)
         if match:
             event_id = int(match.group(1))
         
-        # Extract timestamp
         timestamp = datetime.utcnow()
         match = re.search(r'(\d{4}[-/]\d{2}[-/]\d{2}\s+\d{2}:\d{2}:\d{2})', raw_log)
         if match:
@@ -243,7 +204,6 @@ class WindowsEventParser(BaseParser):
             source_type="windows_event",
         )
         
-        # Map event ID
         if event_id and event_id in self.SECURITY_EVENTS:
             action, category, outcome = self.SECURITY_EVENTS[event_id]
             event.event_action = action

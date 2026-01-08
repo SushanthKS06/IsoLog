@@ -1,3 +1,0 @@
-"""
-IsoLog Tests Package
-"""

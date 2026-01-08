@@ -1,8 +1,3 @@
-"""
-IsoLog Storage Package
-
-Database models and data access layer.
-"""
 
 from .database import get_db, init_db, DatabaseManager
 from .models import Event, Alert, BatchHash
@@ -25,5 +20,4 @@ __all__ = [
     "EventQueryBuilder",
     "AlertQueryBuilder",
 ]
-
 

@@ -1,8 +1,3 @@
-"""
-IsoLog Parsers Package
-
-Log parsing and ECS normalization.
-"""
 
 from .base_parser import BaseParser, ParsedEvent
 from .parser_registry import ParserRegistry, get_parser_registry

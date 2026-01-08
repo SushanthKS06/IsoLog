@@ -1,8 +1,3 @@
-"""
-IsoLog USB Importer
-
-Import logs from removable USB drives.
-"""
 
 import asyncio
 import logging
@@ -16,20 +11,16 @@ from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class USBDevice:
-    """USB device information."""
     mount_point: str
     label: Optional[str]
     size_bytes: int
     used_bytes: int
     filesystem: Optional[str]
 
-
 @dataclass
 class ImportResult:
-    """Result of USB import operation."""
     success: bool
     source_path: str
     files_imported: int
@@ -37,17 +28,7 @@ class ImportResult:
     errors: List[str]
     duration_seconds: float
 
-
 class USBImporter:
-    """
-    Import log files from USB drives.
-    
-    Features:
-    - Detect USB mount points
-    - Scan for log files
-    - Copy to import directory
-    - Parse and ingest logs
-    """
     
     LOG_EXTENSIONS = [".log", ".txt", ".json", ".csv", ".evtx", ".jsonl"]
     
@@ -57,14 +38,6 @@ class USBImporter:
         on_file_imported: Optional[Callable[[str, List[str]], None]] = None,
         max_file_size_mb: int = 100,
     ):
-        """
-        Initialize USB importer.
-        
-        Args:
-            import_directory: Directory to copy imported files
-            on_file_imported: Callback when file is imported (path, lines)
-            max_file_size_mb: Maximum file size to import
-        """
         self.import_directory = Path(import_directory)
         self.import_directory.mkdir(parents=True, exist_ok=True)
         self.on_file_imported = on_file_imported
@@ -73,7 +46,6 @@ class USBImporter:
         self._stats = {"imports": 0, "files": 0, "lines": 0}
     
     def detect_usb_drives(self) -> List[USBDevice]:
-        """Detect mounted USB drives."""
         devices = []
         system = platform.system()
         
@@ -87,13 +59,11 @@ class USBImporter:
         return devices
     
     def _detect_windows_usb(self) -> List[USBDevice]:
-        """Detect USB drives on Windows."""
         devices = []
         
         try:
             import ctypes
             
-            # Get all drives
             bitmask = ctypes.windll.kernel32.GetLogicalDrives()
             
             for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
@@ -101,7 +71,6 @@ class USBImporter:
                     drive_path = f"{letter}:\\"
                     drive_type = ctypes.windll.kernel32.GetDriveTypeW(drive_path)
                     
-                    # 2 = DRIVE_REMOVABLE
                     if drive_type == 2:
                         try:
                             usage = shutil.disk_usage(drive_path)
@@ -123,7 +92,6 @@ class USBImporter:
         return devices
     
     def _detect_linux_usb(self) -> List[USBDevice]:
-        """Detect USB drives on Linux."""
         devices = []
         media_paths = ["/media", "/mnt", "/run/media"]
         
@@ -132,7 +100,6 @@ class USBImporter:
             if not path.exists():
                 continue
             
-            # Check user subdirectories
             for item in path.iterdir():
                 if item.is_dir():
                     for mount in item.iterdir():
@@ -142,7 +109,6 @@ class USBImporter:
         return [d for d in devices if d is not None]
     
     def _detect_macos_usb(self) -> List[USBDevice]:
-        """Detect USB drives on macOS."""
         devices = []
         volumes_path = Path("/Volumes")
         
@@ -156,7 +122,6 @@ class USBImporter:
         return devices
     
     def _get_device_info(self, path: Path) -> Optional[USBDevice]:
-        """Get device information for a mount point."""
         try:
             usage = shutil.disk_usage(path)
             return USBDevice(
@@ -170,7 +135,6 @@ class USBImporter:
             return None
     
     def scan_for_logs(self, path: str, recursive: bool = True) -> List[Path]:
-        """Scan directory for log files."""
         path = Path(path)
         
         if not path.exists():
@@ -193,17 +157,6 @@ class USBImporter:
         copy_files: bool = True,
         recursive: bool = True,
     ) -> ImportResult:
-        """
-        Import logs from a path (USB or any directory).
-        
-        Args:
-            source_path: Source directory to import from
-            copy_files: Copy files to import directory
-            recursive: Scan subdirectories
-            
-        Returns:
-            Import result
-        """
         start_time = datetime.utcnow()
         errors = []
         files_imported = 0
@@ -213,13 +166,11 @@ class USBImporter:
         
         for file_path in log_files:
             try:
-                # Read file content
                 with open(file_path, "r", encoding="utf-8", errors="replace") as f:
                     lines = f.read().splitlines()
                 
                 total_lines += len(lines)
                 
-                # Copy file if requested
                 if copy_files:
                     dest_path = self.import_directory / file_path.name
                     counter = 1
@@ -228,7 +179,6 @@ class USBImporter:
                         counter += 1
                     shutil.copy2(file_path, dest_path)
                 
-                # Callback with lines
                 if self.on_file_imported:
                     self.on_file_imported(str(file_path), lines)
                 
@@ -258,7 +208,6 @@ class USBImporter:
         )
     
     def get_stats(self) -> Dict[str, Any]:
-        """Get importer statistics."""
         return {
             **self._stats,
             "import_directory": str(self.import_directory),

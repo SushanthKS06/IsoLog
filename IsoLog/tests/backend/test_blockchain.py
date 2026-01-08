@@ -1,6 +1,3 @@
-"""
-Tests for blockchain integrity.
-"""
 
 import pytest
 import tempfile
@@ -10,9 +7,7 @@ from backend.blockchain.hash_computer import HashComputer
 from backend.blockchain.chain_manager import ChainManager
 from backend.blockchain.integrity_verifier import IntegrityVerifier
 
-
 class TestHashComputer:
-    """Tests for hash computation."""
     
     def test_hash_string(self):
         hash1 = HashComputer.hash_string("test")
@@ -56,9 +51,7 @@ class TestHashComputer:
         
         assert root is not None  # Should return empty hash
 
-
 class TestChainManager:
-    """Tests for blockchain chain manager."""
     
     @pytest.fixture
     def chain_manager(self):
@@ -80,22 +73,18 @@ class TestChainManager:
         assert block.merkle_root is not None
     
     def test_chain_continuity(self, chain_manager):
-        # Add multiple blocks
         for i in range(5):
             events = [{"id": str(i), "message": f"test{i}"}]
             chain_manager.add_block(events)
         
-        # Get chain
         blocks = chain_manager.get_chain(limit=10)
         
         assert len(blocks) == 5
         
-        # Verify chain linkage
         for i in range(1, len(blocks)):
             assert blocks[i].previous_hash == blocks[i-1].block_hash
     
     def test_verify_chain(self, chain_manager):
-        # Add blocks
         for i in range(3):
             chain_manager.add_block([{"id": str(i)}])
         
@@ -103,9 +92,7 @@ class TestChainManager:
         
         assert is_valid == True
 
-
 class TestIntegrityVerifier:
-    """Tests for integrity verification."""
     
     @pytest.fixture
     def verifier(self):
@@ -113,7 +100,6 @@ class TestIntegrityVerifier:
             db_path = Path(tmpdir) / "test_chain.db"
             chain = ChainManager(str(db_path))
             
-            # Add some blocks
             for i in range(3):
                 chain.add_block([{"id": str(i), "message": f"event{i}"}])
             

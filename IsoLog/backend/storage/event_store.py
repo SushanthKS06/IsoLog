@@ -1,8 +1,3 @@
-"""
-IsoLog Event Store
-
-Data access layer for event operations.
-"""
 
 import json
 import logging
@@ -17,37 +12,14 @@ from ..utils import generate_uuid
 
 logger = logging.getLogger(__name__)
 
-
 class EventStore:
-    """
-    Data access layer for log events.
-    
-    Provides methods for storing, querying, and managing events.
-    """
     
     def __init__(self, session: AsyncSession):
-        """
-        Initialize event store.
-        
-        Args:
-            session: SQLAlchemy async session
-        """
         self.session = session
     
     async def create(self, event_data: Dict[str, Any]) -> Event:
-        """
-        Create a new event.
-        
-        Args:
-            event_data: Event data dictionary (ECS format)
-            
-        Returns:
-            Created Event object
-        """
-        # Generate ID if not provided
         event_id = event_data.get("id") or generate_uuid()
         
-        # Extract nested fields
         event_info = event_data.get("event", {})
         host_info = event_data.get("host", {})
         source_info = event_data.get("source", {})
@@ -89,15 +61,6 @@ class EventStore:
         return event
     
     async def create_batch(self, events_data: List[Dict[str, Any]]) -> List[Event]:
-        """
-        Create multiple events in batch.
-        
-        Args:
-            events_data: List of event data dictionaries
-            
-        Returns:
-            List of created Event objects
-        """
         events = []
         for event_data in events_data:
             event = await self.create(event_data)
@@ -106,15 +69,6 @@ class EventStore:
         return events
     
     async def get_by_id(self, event_id: str) -> Optional[Event]:
-        """
-        Get event by ID.
-        
-        Args:
-            event_id: Event ID
-            
-        Returns:
-            Event object or None
-        """
         result = await self.session.execute(
             select(Event).where(Event.id == event_id)
         )
@@ -133,24 +87,6 @@ class EventStore:
         offset: int = 0,
         order_desc: bool = True,
     ) -> List[Event]:
-        """
-        Query events with filters.
-        
-        Args:
-            start_time: Filter events after this time
-            end_time: Filter events before this time
-            host_name: Filter by host name (partial match)
-            source_ip: Filter by source IP
-            user_name: Filter by user name (partial match)
-            event_action: Filter by event action
-            event_category: Filter by category (JSON contains)
-            limit: Maximum results
-            offset: Results offset
-            order_desc: Order by timestamp descending
-            
-        Returns:
-            List of matching events
-        """
         query = select(Event)
         
         conditions = []
@@ -188,16 +124,6 @@ class EventStore:
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
     ) -> int:
-        """
-        Count events in time range.
-        
-        Args:
-            start_time: Count events after this time
-            end_time: Count events before this time
-            
-        Returns:
-            Event count
-        """
         query = select(func.count(Event.id))
         
         conditions = []
@@ -217,16 +143,6 @@ class EventStore:
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
     ) -> Dict[str, Any]:
-        """
-        Get event statistics.
-        
-        Args:
-            start_time: Stats from this time
-            end_time: Stats until this time
-            
-        Returns:
-            Statistics dictionary
-        """
         conditions = []
         if start_time:
             conditions.append(Event.timestamp >= start_time)
@@ -235,13 +151,11 @@ class EventStore:
         
         where_clause = and_(*conditions) if conditions else True
         
-        # Total count
         total_result = await self.session.execute(
             select(func.count(Event.id)).where(where_clause)
         )
         total = total_result.scalar() or 0
         
-        # Count by source type
         source_result = await self.session.execute(
             select(Event.source_type, func.count(Event.id))
             .where(where_clause)
@@ -249,7 +163,6 @@ class EventStore:
         )
         by_source = {row[0] or "unknown": row[1] for row in source_result}
         
-        # Count by event kind
         kind_result = await self.session.execute(
             select(Event.event_kind, func.count(Event.id))
             .where(where_clause)
@@ -257,7 +170,6 @@ class EventStore:
         )
         by_kind = {row[0] or "unknown": row[1] for row in kind_result}
         
-        # Top hosts
         host_result = await self.session.execute(
             select(Event.host_name, func.count(Event.id))
             .where(where_clause)
@@ -279,20 +191,9 @@ class EventStore:
         batch_size: int = 1000,
         after_id: Optional[str] = None,
     ) -> List[Event]:
-        """
-        Get batch of events for blockchain hashing.
-        
-        Args:
-            batch_size: Number of events in batch
-            after_id: Get events after this ID
-            
-        Returns:
-            List of events
-        """
         query = select(Event).where(Event.batch_id.is_(None))
         
         if after_id:
-            # Get timestamp of reference event
             ref_result = await self.session.execute(
                 select(Event.timestamp).where(Event.id == after_id)
             )
@@ -306,13 +207,6 @@ class EventStore:
         return list(result.scalars().all())
     
     async def mark_batch(self, event_ids: List[str], batch_id: str):
-        """
-        Mark events as belonging to a batch.
-        
-        Args:
-            event_ids: List of event IDs
-            batch_id: Batch hash ID
-        """
         from sqlalchemy import update
         
         await self.session.execute(

@@ -1,4 +1,3 @@
-"""Quick test for Mordor parser."""
 import sys
 sys.path.insert(0, '.')
 from backend.parsers.formats.mordor import MordorParser

@@ -1,6 +1,3 @@
-"""
-IsoLog Utilities Package
-"""
 
 from .helpers import (
     generate_uuid,

@@ -1,18 +1,10 @@
 #!/usr/bin/env python3
-"""
-Generate Ed25519 keypair for update signing.
-
-Usage:
-    python generate_keys.py [output_directory]
-"""
 
 import argparse
 import sys
 from pathlib import Path
 
-
 def generate_keypair(output_dir: str):
-    """Generate Ed25519 keypair."""
     try:
         from cryptography.hazmat.primitives.asymmetric import ed25519
         from cryptography.hazmat.primitives import serialization
@@ -23,11 +15,9 @@ def generate_keypair(output_dir: str):
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
     
-    # Generate keypair
     private_key = ed25519.Ed25519PrivateKey.generate()
     public_key = private_key.public_key()
     
-    # Save private key
     private_path = output_path / "update_signing_key.pem"
     with open(private_path, "wb") as f:
         f.write(private_key.private_bytes(
@@ -38,7 +28,6 @@ def generate_keypair(output_dir: str):
     print(f"Private key saved: {private_path}")
     print("⚠️  Keep this file secure! Do not commit to version control.")
     
-    # Save public key
     public_path = output_path / "update_verify_key.pem"
     with open(public_path, "wb") as f:
         f.write(public_key.public_bytes(
@@ -48,7 +37,6 @@ def generate_keypair(output_dir: str):
     print(f"Public key saved: {public_path}")
     print("This key should be embedded in the application for verification.")
     
-    # Print public key for embedding
     print("\n--- Public Key (for embedding) ---")
     import base64
     pub_bytes = public_key.public_bytes(
@@ -56,7 +44,6 @@ def generate_keypair(output_dir: str):
         format=serialization.PublicFormat.Raw,
     )
     print(f"Base64: {base64.b64encode(pub_bytes).decode()}")
-
 
 def main():
     parser = argparse.ArgumentParser(description="Generate update signing keypair")
@@ -69,7 +56,6 @@ def main():
     
     args = parser.parse_args()
     generate_keypair(args.output_dir)
-
 
 if __name__ == "__main__":
     main()

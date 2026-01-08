@@ -1,6 +1,3 @@
-"""
-IsoLog MITRE ATT&CK Package
-"""
 
 from .mapping import MitreMapper
 

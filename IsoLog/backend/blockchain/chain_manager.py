@@ -1,8 +1,3 @@
-"""
-IsoLog Chain Manager
-
-Manages the local hash chain (blockchain ledger).
-"""
 
 import logging
 from datetime import datetime
@@ -18,9 +13,7 @@ logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
-
 class HashBlock(Base):
-    """Hash block in the local chain."""
     __tablename__ = "hash_blocks"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -33,21 +26,9 @@ class HashBlock(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     block_metadata = Column(Text)  # JSON metadata
 
-
 class ChainManager:
-    """
-    Manages the local hash chain for log integrity.
-    
-    Implements a simple blockchain-like structure for tamper detection.
-    """
     
     def __init__(self, ledger_path: str):
-        """
-        Initialize chain manager.
-        
-        Args:
-            ledger_path: Path to SQLite ledger database
-        """
         self.ledger_path = Path(ledger_path)
         self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -57,11 +38,9 @@ class ChainManager:
         )
         self.Session = sessionmaker(bind=self.engine)
         
-        # Create tables
         Base.metadata.create_all(self.engine)
     
     def get_latest_block(self) -> Optional[HashBlock]:
-        """Get the latest block in the chain."""
         session = self.Session()
         try:
             return session.query(HashBlock).order_by(HashBlock.id.desc()).first()
@@ -69,7 +48,6 @@ class ChainManager:
             session.close()
     
     def get_previous_hash(self) -> Optional[str]:
-        """Get hash of the latest block for chaining."""
         latest = self.get_latest_block()
         return latest.block_hash if latest else None
     
@@ -80,24 +58,10 @@ class ChainManager:
         batch_end_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> HashBlock:
-        """
-        Add a new block to the chain.
-        
-        Args:
-            events: List of events to hash
-            batch_start_id: ID of first event in batch
-            batch_end_id: ID of last event in batch
-            metadata: Optional metadata to store
-            
-        Returns:
-            Created HashBlock
-        """
         previous_hash = self.get_previous_hash()
         
-        # Compute batch hash
         hash_result = HashComputer.compute_batch_hash(events, previous_hash)
         
-        # Create block
         import json
         block = HashBlock(
             block_hash=hash_result["hash_value"],
@@ -130,17 +94,6 @@ class ChainManager:
         end_block: Optional[int] = None,
         limit: int = 100,
     ) -> List[HashBlock]:
-        """
-        Get blocks from the chain.
-        
-        Args:
-            start_block: Start block number
-            end_block: End block number
-            limit: Maximum blocks to return
-            
-        Returns:
-            List of blocks
-        """
         session = self.Session()
         try:
             query = session.query(HashBlock)
@@ -159,16 +112,6 @@ class ChainManager:
         start_block: Optional[int] = None,
         end_block: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """
-        Verify integrity of the hash chain.
-        
-        Args:
-            start_block: Start verification from this block
-            end_block: End verification at this block
-            
-        Returns:
-            Verification result
-        """
         blocks = self.get_chain(start_block, end_block, limit=10000)
         
         if not blocks:
@@ -181,7 +124,6 @@ class ChainManager:
         errors = []
         
         for i, block in enumerate(blocks):
-            # Verify chain linkage
             if i > 0:
                 expected_prev = blocks[i - 1].block_hash
                 if block.previous_hash != expected_prev:
@@ -192,7 +134,6 @@ class ChainManager:
                         "actual": (block.previous_hash or "none")[:16],
                     })
             elif block.previous_hash is not None and start_block is None:
-                # First block should have no previous (if starting from genesis)
                 pass  # OK if starting from middle
         
         return {
@@ -204,12 +145,6 @@ class ChainManager:
         }
     
     def export_chain(self) -> List[Dict[str, Any]]:
-        """
-        Export chain data for external verification.
-        
-        Returns:
-            List of block dictionaries
-        """
         blocks = self.get_chain(limit=10000)
         
         return [
@@ -225,7 +160,6 @@ class ChainManager:
         ]
     
     def get_stats(self) -> Dict[str, Any]:
-        """Get chain statistics."""
         session = self.Session()
         try:
             total_blocks = session.query(HashBlock).count()

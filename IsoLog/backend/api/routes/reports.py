@@ -1,8 +1,3 @@
-"""
-IsoLog Reports API Routes
-
-Generate and download reports.
-"""
 
 import logging
 from typing import Optional
@@ -20,25 +15,20 @@ from ...reporting import ReportGenerator
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-
 class ReportRequest(BaseModel):
-    """Report generation request."""
     report_type: str  # executive, alerts, events, mitre, integrity
     format: str = "pdf"  # pdf, csv, json
     period_days: int = 7
-
 
 @router.post("/generate")
 async def generate_report(
     request: ReportRequest,
     session: AsyncSession = Depends(get_db),
 ):
-    """Generate a new report."""
     try:
         generator = ReportGenerator("./data/reports")
         
         if request.report_type == "executive":
-            # Get stats and alerts
             alert_store = AlertStore(session)
             stats = await alert_store.get_alert_counts()
             alerts = await alert_store.query_alerts(limit=100)
@@ -104,10 +94,8 @@ async def generate_report(
         logger.error(f"Report generation failed: {e}")
         raise HTTPException(500, str(e))
 
-
 @router.get("/download")
 async def download_report(path: str = Query(...)):
-    """Download a generated report."""
     from pathlib import Path
     
     file_path = Path(path)
@@ -115,7 +103,6 @@ async def download_report(path: str = Query(...)):
     if not file_path.exists():
         raise HTTPException(404, "Report not found")
     
-    # Security check - only allow downloads from reports directory
     if "reports" not in str(file_path):
         raise HTTPException(403, "Invalid path")
     
@@ -125,10 +112,8 @@ async def download_report(path: str = Query(...)):
         media_type="application/octet-stream",
     )
 
-
 @router.get("/list")
 async def list_reports():
-    """List available reports."""
     from pathlib import Path
     
     reports_dir = Path("./data/reports")

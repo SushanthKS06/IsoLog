@@ -1,4 +1,3 @@
-"""Analyze the 3 remaining failing datasets in detail."""
 import json
 import zipfile
 from pathlib import Path
@@ -23,7 +22,6 @@ for ds_id in failing_datasets:
         print(f"Dataset: {ds_id}")
         print(f"Title: {meta.get('title')}")
         
-        # Find data
         files = meta.get('files', [])
         for finfo in files:
             if finfo.get('type') == 'Host':
@@ -40,7 +38,6 @@ for ds_id in failing_datasets:
                                         
                                         print(f"Total events: {len(lines)}")
                                         
-                                        # Find CommandLine events
                                         cmd_events = []
                                         for i, line in enumerate(lines):
                                             raw = json.loads(line)

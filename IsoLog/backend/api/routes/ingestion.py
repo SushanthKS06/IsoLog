@@ -1,8 +1,3 @@
-"""
-IsoLog Ingestion API Routes
-
-Manage log ingestion sources.
-"""
 
 import logging
 from typing import List, Optional
@@ -13,22 +8,15 @@ from pydantic import BaseModel
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-
 class WatchPathRequest(BaseModel):
-    """Add watch path request."""
     path: str
 
-
 class ImportRequest(BaseModel):
-    """USB import request."""
     path: str
     recursive: bool = True
 
-
 @router.get("/status")
 async def get_ingestion_status():
-    """Get ingestion system status."""
-    # Would be implemented with actual ingestion manager
     return {
         "syslog": {
             "enabled": True,
@@ -47,10 +35,8 @@ async def get_ingestion_status():
         },
     }
 
-
 @router.post("/watch")
 async def add_watch_path(request: WatchPathRequest):
-    """Add a directory to file watcher."""
     from pathlib import Path
     
     path = Path(request.path)
@@ -60,27 +46,22 @@ async def add_watch_path(request: WatchPathRequest):
     if not path.is_dir():
         raise HTTPException(400, f"Path is not a directory: {request.path}")
     
-    # Would add to actual file watcher
     return {
         "success": True,
         "path": str(path),
         "message": f"Added {path} to watch list",
     }
 
-
 @router.delete("/watch")
 async def remove_watch_path(path: str = Query(...)):
-    """Remove a directory from file watcher."""
     return {
         "success": True,
         "path": path,
         "message": f"Removed {path} from watch list",
     }
 
-
 @router.get("/usb/detect")
 async def detect_usb_drives():
-    """Detect available USB drives."""
     try:
         from ...ingestion import USBImporter
         
@@ -102,10 +83,8 @@ async def detect_usb_drives():
         logger.error(f"USB detection error: {e}")
         return {"devices": [], "error": str(e)}
 
-
 @router.post("/usb/import")
 async def import_from_usb(request: ImportRequest):
-    """Import logs from USB path."""
     try:
         from ...ingestion import USBImporter
         
@@ -126,14 +105,11 @@ async def import_from_usb(request: ImportRequest):
         logger.error(f"USB import error: {e}")
         raise HTTPException(500, str(e))
 
-
 @router.post("/upload")
 async def upload_log_file(file: UploadFile = File(...)):
-    """Upload a log file for ingestion."""
     import aiofiles
     from pathlib import Path
     
-    # Save uploaded file
     upload_dir = Path("./data/uploads")
     upload_dir.mkdir(parents=True, exist_ok=True)
     
@@ -144,7 +120,6 @@ async def upload_log_file(file: UploadFile = File(...)):
             content = await file.read()
             await f.write(content)
         
-        # Count lines
         line_count = content.decode("utf-8", errors="replace").count("\n")
         
         return {
@@ -158,10 +133,8 @@ async def upload_log_file(file: UploadFile = File(...)):
         logger.error(f"Upload error: {e}")
         raise HTTPException(500, str(e))
 
-
 @router.post("/pcap")
 async def process_pcap(path: str = Query(...)):
-    """Process a PCAP file."""
     try:
         from ...ingestion import PCAPProcessor
         from pathlib import Path

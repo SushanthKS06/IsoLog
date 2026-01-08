@@ -1,6 +1,3 @@
-"""
-IsoLog Parser Formats Package
-"""
 
 from .linux_syslog import LinuxSyslogParser
 from .json_generic import JSONGenericParser

@@ -1,8 +1,3 @@
-"""
-IsoLog Parser Registry
-
-Dynamic parser loading and selection.
-"""
 
 import logging
 from typing import Dict, List, Optional, Type
@@ -11,36 +6,20 @@ from .base_parser import BaseParser, ParsedEvent
 
 logger = logging.getLogger(__name__)
 
-
 class ParserRegistry:
-    """
-    Registry for log parsers.
-    
-    Manages parser registration, selection, and auto-detection.
-    """
     
     def __init__(self):
-        """Initialize parser registry."""
         self._parsers: Dict[str, BaseParser] = {}
         self._priority_order: List[str] = []
     
     def register(self, parser: BaseParser, priority: int = 100):
-        """
-        Register a parser.
-        
-        Args:
-            parser: Parser instance to register
-            priority: Lower number = higher priority for auto-detection
-        """
         parser_id = parser.parser_id
         self._parsers[parser_id] = parser
         
-        # Insert in priority order
         inserted = False
         for i, pid in enumerate(self._priority_order):
             if pid not in self._parsers:
                 continue
-            # Simple priority ordering - could be more sophisticated
             inserted = True
             self._priority_order.insert(i, parser_id)
             break
@@ -51,36 +30,15 @@ class ParserRegistry:
         logger.info(f"Registered parser: {parser_id} ({parser.parser_name})")
     
     def unregister(self, parser_id: str):
-        """
-        Unregister a parser.
-        
-        Args:
-            parser_id: ID of parser to remove
-        """
         if parser_id in self._parsers:
             del self._parsers[parser_id]
             self._priority_order = [p for p in self._priority_order if p != parser_id]
             logger.info(f"Unregistered parser: {parser_id}")
     
     def get_parser(self, parser_id: str) -> Optional[BaseParser]:
-        """
-        Get parser by ID.
-        
-        Args:
-            parser_id: Parser ID
-            
-        Returns:
-            Parser instance or None
-        """
         return self._parsers.get(parser_id)
     
     def list_parsers(self) -> List[Dict[str, str]]:
-        """
-        List all registered parsers.
-        
-        Returns:
-            List of parser info dictionaries
-        """
         return [
             {
                 "id": p.parser_id,
@@ -92,15 +50,6 @@ class ParserRegistry:
         ]
     
     def detect_parser(self, raw_log: str) -> Optional[BaseParser]:
-        """
-        Auto-detect appropriate parser for a log line.
-        
-        Args:
-            raw_log: Raw log line
-            
-        Returns:
-            Matching parser or None
-        """
         for parser_id in self._priority_order:
             parser = self._parsers.get(parser_id)
             if parser and parser.can_parse(raw_log):
@@ -113,18 +62,6 @@ class ParserRegistry:
         parser_id: Optional[str] = None,
         source_type: Optional[str] = None,
     ) -> Optional[ParsedEvent]:
-        """
-        Parse a log line using specified or auto-detected parser.
-        
-        Args:
-            raw_log: Raw log line
-            parser_id: Optional specific parser to use
-            source_type: Optional source type hint
-            
-        Returns:
-            ParsedEvent or None
-        """
-        # Use specified parser if provided
         if parser_id:
             parser = self.get_parser(parser_id)
             if parser:
@@ -132,7 +69,6 @@ class ParserRegistry:
             logger.warning(f"Parser not found: {parser_id}")
             return None
         
-        # Auto-detect parser
         parser = self.detect_parser(raw_log)
         if parser:
             return parser.parse(raw_log, source_type)
@@ -146,17 +82,6 @@ class ParserRegistry:
         parser_id: Optional[str] = None,
         source_type: Optional[str] = None,
     ) -> List[ParsedEvent]:
-        """
-        Parse multiple log lines.
-        
-        Args:
-            raw_logs: List of raw log lines
-            parser_id: Optional specific parser to use
-            source_type: Optional source type hint
-            
-        Returns:
-            List of parsed events
-        """
         events = []
         for raw_log in raw_logs:
             try:
@@ -168,23 +93,16 @@ class ParserRegistry:
                 continue
         return events
 
-
-# Global registry instance
 _registry: Optional[ParserRegistry] = None
 
-
 def get_parser_registry() -> ParserRegistry:
-    """Get or create global parser registry."""
     global _registry
     if _registry is None:
         _registry = ParserRegistry()
         _register_default_parsers(_registry)
     return _registry
 
-
 def _register_default_parsers(registry: ParserRegistry):
-    """Register default parsers."""
-    # Import and register format parsers
     try:
         from .formats.linux_syslog import LinuxSyslogParser
         registry.register(LinuxSyslogParser(), priority=10)

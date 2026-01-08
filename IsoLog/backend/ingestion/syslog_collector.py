@@ -1,8 +1,3 @@
-"""
-IsoLog Syslog Collector
-
-UDP/TCP syslog server supporting RFC 3164 and RFC 5424.
-"""
 
 import asyncio
 import logging
@@ -13,10 +8,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class SyslogMessage:
-    """Parsed syslog message."""
     raw: str
     timestamp: Optional[datetime]
     hostname: Optional[str]
@@ -29,30 +22,24 @@ class SyslogMessage:
     source_ip: str
     source_port: int
 
-
 class SyslogProtocol(asyncio.DatagramProtocol):
-    """UDP syslog protocol handler."""
     
     def __init__(self, collector: "SyslogCollector"):
         self.collector = collector
     
     def datagram_received(self, data: bytes, addr: tuple):
-        """Handle incoming UDP datagram."""
         try:
             message = data.decode("utf-8", errors="replace").strip()
             self.collector._process_message(message, addr[0], addr[1])
         except Exception as e:
             logger.error(f"Error processing syslog UDP: {e}")
 
-
 class SyslogTCPHandler:
-    """TCP syslog connection handler."""
     
     def __init__(self, collector: "SyslogCollector"):
         self.collector = collector
     
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        """Handle TCP client connection."""
         addr = writer.get_extra_info('peername')
         logger.debug(f"Syslog TCP connection from {addr}")
         
@@ -65,7 +52,6 @@ class SyslogTCPHandler:
                 
                 buffer += data.decode("utf-8", errors="replace")
                 
-                # Process complete messages (newline-delimited)
                 while "\n" in buffer:
                     line, buffer = buffer.split("\n", 1)
                     if line.strip():
@@ -76,17 +62,8 @@ class SyslogTCPHandler:
             writer.close()
             await writer.wait_closed()
 
-
 class SyslogCollector:
-    """
-    Syslog collector supporting both UDP and TCP.
     
-    Supports:
-    - RFC 3164 (BSD syslog)
-    - RFC 5424 (modern syslog)
-    """
-    
-    # Syslog facilities
     FACILITIES = {
         0: "kern", 1: "user", 2: "mail", 3: "daemon",
         4: "auth", 5: "syslog", 6: "lpr", 7: "news",
@@ -95,7 +72,6 @@ class SyslogCollector:
         20: "local4", 21: "local5", 22: "local6", 23: "local7",
     }
     
-    # Syslog severities
     SEVERITIES = {
         0: "emergency", 1: "alert", 2: "critical", 3: "error",
         4: "warning", 5: "notice", 6: "info", 7: "debug",
@@ -111,18 +87,6 @@ class SyslogCollector:
         enable_tcp: bool = True,
         on_message: Optional[Callable[[SyslogMessage], None]] = None,
     ):
-        """
-        Initialize syslog collector.
-        
-        Args:
-            udp_host: UDP bind address
-            udp_port: UDP port (514 requires root)
-            tcp_host: TCP bind address
-            tcp_port: TCP port
-            enable_udp: Enable UDP listener
-            enable_tcp: Enable TCP listener
-            on_message: Callback for received messages
-        """
         self.udp_host = udp_host
         self.udp_port = udp_port
         self.tcp_host = tcp_host
@@ -138,13 +102,11 @@ class SyslogCollector:
         self._stats = {"received": 0, "errors": 0}
     
     async def start(self):
-        """Start the syslog collector."""
         self._running = True
         self._message_queue = asyncio.Queue(maxsize=10000)
         
         loop = asyncio.get_event_loop()
         
-        # Start UDP listener
         if self.enable_udp:
             try:
                 transport, _ = await loop.create_datagram_endpoint(
@@ -158,7 +120,6 @@ class SyslogCollector:
             except Exception as e:
                 logger.error(f"Failed to start UDP listener: {e}")
         
-        # Start TCP listener
         if self.enable_tcp:
             try:
                 handler = SyslogTCPHandler(self)
@@ -174,7 +135,6 @@ class SyslogCollector:
         logger.info("Syslog collector started")
     
     async def stop(self):
-        """Stop the syslog collector."""
         self._running = False
         
         if self._udp_transport:
@@ -189,7 +149,6 @@ class SyslogCollector:
         logger.info("Syslog collector stopped")
     
     def _process_message(self, raw: str, source_ip: str, source_port: int):
-        """Process incoming syslog message."""
         try:
             msg = self._parse_message(raw, source_ip, source_port)
             self._stats["received"] += 1
@@ -205,7 +164,6 @@ class SyslogCollector:
             logger.debug(f"Failed to parse syslog: {e}")
     
     def _parse_message(self, raw: str, source_ip: str, source_port: int) -> SyslogMessage:
-        """Parse syslog message (RFC 3164 or 5424)."""
         timestamp = None
         hostname = None
         facility = 1  # user
@@ -215,7 +173,6 @@ class SyslogCollector:
         msg_id = None
         message = raw
         
-        # Parse priority
         if raw.startswith("<"):
             try:
                 pri_end = raw.index(">")
@@ -226,7 +183,6 @@ class SyslogCollector:
             except (ValueError, IndexError):
                 pass
         
-        # Try RFC 5424 format: VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID
         if raw and raw[0].isdigit():
             parts = raw.split(" ", 7)
             if len(parts) >= 7:
@@ -249,8 +205,6 @@ class SyslogCollector:
                     except Exception:
                         pass
         
-        # RFC 3164 format: TIMESTAMP HOSTNAME TAG: MSG
-        # Example: Dec 31 10:00:00 webserver sshd[1234]: message
         import re
         
         rfc3164_pattern = r'^([A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(\S+)\s+(.*)$'
@@ -260,7 +214,6 @@ class SyslogCollector:
             timestamp_str, hostname, rest = match.groups()
             timestamp = self._parse_timestamp(timestamp_str)
             
-            # Parse tag (app[pid]:)
             tag_match = re.match(r'^(\S+?)(?:\[(\d+)\])?:\s*(.*)$', rest)
             if tag_match:
                 app_name = tag_match.group(1)
@@ -277,7 +230,6 @@ class SyslogCollector:
         )
     
     def _parse_timestamp(self, ts_str: str) -> Optional[datetime]:
-        """Parse syslog timestamp."""
         from datetime import datetime
         
         formats = [
@@ -299,7 +251,6 @@ class SyslogCollector:
         return None
     
     async def get_messages(self, timeout: float = 1.0) -> List[SyslogMessage]:
-        """Get queued messages."""
         messages = []
         
         try:
@@ -315,7 +266,6 @@ class SyslogCollector:
         return messages
     
     def get_stats(self) -> Dict[str, Any]:
-        """Get collector statistics."""
         return {
             **self._stats,
             "udp_enabled": self.enable_udp,

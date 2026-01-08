@@ -1,8 +1,3 @@
-"""
-IsoLog Blockchain Package
-
-Tamper-evident log integrity using hash chains.
-"""
 
 from .hash_computer import HashComputer
 from .chain_manager import ChainManager

@@ -1,8 +1,3 @@
-"""
-IsoLog PDF Exporter
-
-Export reports to PDF format using ReportLab.
-"""
 
 import logging
 from datetime import datetime
@@ -11,7 +6,6 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-# Check if reportlab is available
 try:
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter, A4
@@ -26,11 +20,8 @@ except ImportError:
     REPORTLAB_AVAILABLE = False
     logger.warning("reportlab not installed. PDF export will be limited.")
 
-
 class PDFExporter:
-    """Export reports to PDF format."""
     
-    # Color scheme
     COLORS = {
         "critical": (0.86, 0.15, 0.15),  # Red
         "high": (0.97, 0.45, 0.09),      # Orange
@@ -41,21 +32,12 @@ class PDFExporter:
     }
     
     def __init__(self):
-        """Initialize PDF exporter."""
         self._available = REPORTLAB_AVAILABLE
     
     def is_available(self) -> bool:
-        """Check if PDF export is available."""
         return self._available
     
     def export_executive_summary(self, data: Dict[str, Any], output_path: str):
-        """
-        Generate executive summary PDF.
-        
-        Args:
-            data: Report data
-            output_path: Output file path
-        """
         if not self._available:
             self._write_fallback(data, output_path)
             return
@@ -64,7 +46,6 @@ class PDFExporter:
         styles = getSampleStyleSheet()
         story = []
         
-        # Title
         title_style = ParagraphStyle(
             'Title',
             parent=styles['Heading1'],
@@ -74,13 +55,11 @@ class PDFExporter:
         )
         story.append(Paragraph(data.get("title", "Security Report"), title_style))
         
-        # Metadata
         meta_style = styles['Normal']
         story.append(Paragraph(f"<b>Generated:</b> {data.get('generated_at', '')}", meta_style))
         story.append(Paragraph(f"<b>Period:</b> {data.get('period', '')}", meta_style))
         story.append(Spacer(1, 20))
         
-        # Statistics summary
         stats = data.get("statistics", {})
         story.append(Paragraph("<b>Summary Statistics</b>", styles['Heading2']))
         story.append(Spacer(1, 10))
@@ -109,7 +88,6 @@ class PDFExporter:
         story.append(stats_table)
         story.append(Spacer(1, 20))
         
-        # Severity breakdown
         breakdown = data.get("severity_breakdown", {})
         if breakdown:
             story.append(Paragraph("<b>Severity Distribution</b>", styles['Heading2']))
@@ -128,7 +106,6 @@ class PDFExporter:
             story.append(severity_table)
             story.append(Spacer(1, 20))
         
-        # Top alerts
         top_alerts = data.get("top_alerts", [])
         if top_alerts:
             story.append(PageBreak())
@@ -151,7 +128,6 @@ class PDFExporter:
         logger.info(f"Generated executive summary PDF: {output_path}")
     
     def export_alerts(self, alerts: List[Dict[str, Any]], output_path: str):
-        """Generate alerts PDF report."""
         if not self._available:
             self._write_fallback({"alerts": alerts}, output_path)
             return
@@ -186,7 +162,6 @@ class PDFExporter:
         logger.info(f"Generated alerts PDF: {output_path}")
     
     def export_mitre_report(self, data: Dict[str, Any], output_path: str):
-        """Generate MITRE ATT&CK coverage PDF."""
         if not self._available:
             self._write_fallback(data, output_path)
             return
@@ -199,7 +174,6 @@ class PDFExporter:
         story.append(Paragraph(f"Generated: {data.get('generated_at', '')}", styles['Normal']))
         story.append(Spacer(1, 20))
         
-        # Tactics
         tactics = data.get("tactics", {})
         if tactics:
             story.append(Paragraph("<b>Tactics Detected</b>", styles['Heading2']))
@@ -218,7 +192,6 @@ class PDFExporter:
             story.append(table)
             story.append(Spacer(1, 20))
         
-        # Techniques
         techniques = data.get("techniques", {})
         if techniques:
             story.append(Paragraph("<b>Top Techniques</b>", styles['Heading2']))
@@ -240,7 +213,6 @@ class PDFExporter:
         logger.info(f"Generated MITRE PDF: {output_path}")
     
     def export_integrity_report(self, data: Dict[str, Any], output_path: str):
-        """Generate integrity verification PDF."""
         if not self._available:
             self._write_fallback(data, output_path)
             return
@@ -253,7 +225,6 @@ class PDFExporter:
         story.append(Paragraph(f"Generated: {data.get('generated_at', '')}", styles['Normal']))
         story.append(Spacer(1, 20))
         
-        # Status
         is_valid = data.get("chain_valid", False)
         status_text = "✓ VERIFIED" if is_valid else "✗ INTEGRITY ISSUES DETECTED"
         status_color = colors.green if is_valid else colors.red
@@ -266,7 +237,6 @@ class PDFExporter:
         story.append(Paragraph(status_text, status_style))
         story.append(Spacer(1, 20))
         
-        # Statistics
         stats = data.get("statistics", {})
         if stats:
             story.append(Paragraph("<b>Chain Statistics</b>", styles['Heading3']))
@@ -278,10 +248,8 @@ class PDFExporter:
         logger.info(f"Generated integrity PDF: {output_path}")
     
     def _write_fallback(self, data: Dict[str, Any], output_path: str):
-        """Write text fallback when reportlab not available."""
         import json
         
-        # Change extension to .txt
         txt_path = output_path.replace('.pdf', '.txt')
         
         with open(txt_path, 'w', encoding='utf-8') as f:

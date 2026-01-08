@@ -1,8 +1,3 @@
-"""
-IsoLog Firewall Parser
-
-Parses common firewall log formats.
-"""
 
 import re
 from datetime import datetime
@@ -10,16 +5,7 @@ from typing import Optional
 
 from ..base_parser import BaseParser, ParsedEvent
 
-
 class FirewallParser(BaseParser):
-    """
-    Parser for firewall log formats.
-    
-    Supports:
-    - iptables/netfilter
-    - Windows Firewall
-    - Generic firewall formats
-    """
     
     parser_id = "firewall"
     parser_name = "Firewall Log Parser"
@@ -27,7 +13,6 @@ class FirewallParser(BaseParser):
     supported_formats = ["firewall", "iptables", "netfilter"]
     file_patterns = ["*firewall*.log", "*iptables*.log", "*pfirewall*.log"]
     
-    # iptables pattern
     IPTABLES_PATTERN = (
         r'(?:.*\s)?'
         r'(?P<prefix>\[\s*\S+\s*\]\s*)?'
@@ -41,7 +26,6 @@ class FirewallParser(BaseParser):
         r'(?:.*?DPT=(?P<dst_port>\d+))?'
     )
     
-    # Windows Firewall pattern
     WINDOWS_FW_PATTERN = (
         r'(?P<date>\d{4}-\d{2}-\d{2})\s+'
         r'(?P<time>\d{2}:\d{2}:\d{2})\s+'
@@ -53,7 +37,6 @@ class FirewallParser(BaseParser):
         r'(?P<dst_port>\d+)'
     )
     
-    # Generic key=value pattern
     KV_PATTERN = r'(\w+)=([^\s]+)'
     
     def __init__(self):
@@ -63,19 +46,15 @@ class FirewallParser(BaseParser):
         self._kv = re.compile(self.KV_PATTERN)
     
     def can_parse(self, raw_log: str) -> bool:
-        """Check if this looks like firewall log."""
         raw_log_upper = raw_log.upper()
         
-        # iptables indicators
         if 'SRC=' in raw_log_upper and 'DST=' in raw_log_upper:
             return True
         
-        # Windows Firewall CSV header
         if 'DROP' in raw_log_upper or 'ALLOW' in raw_log_upper:
             if re.search(r'\d+\.\d+\.\d+\.\d+', raw_log):
                 return True
         
-        # Generic firewall keywords
         firewall_keywords = ['BLOCKED', 'PERMITTED', 'DENIED', 'ACCEPTED', 'FIREWALL']
         for keyword in firewall_keywords:
             if keyword in raw_log_upper:
@@ -84,26 +63,21 @@ class FirewallParser(BaseParser):
         return False
     
     def parse(self, raw_log: str, source_type: Optional[str] = None) -> Optional[ParsedEvent]:
-        """Parse firewall log."""
         raw_log = raw_log.strip()
         if not raw_log:
             return None
         
-        # Try iptables format
         match = self._iptables.search(raw_log)
         if match:
             return self._parse_iptables(match, raw_log)
         
-        # Try Windows Firewall format
         match = self._windows_fw.match(raw_log)
         if match:
             return self._parse_windows_fw(match, raw_log)
         
-        # Try generic key=value format
         return self._parse_generic(raw_log)
     
     def _parse_iptables(self, match: re.Match, raw_log: str) -> ParsedEvent:
-        """Parse iptables/netfilter log."""
         direction = match.group("action")
         src_ip = match.group("src_ip")
         dst_ip = match.group("dst_ip")
@@ -111,7 +85,6 @@ class FirewallParser(BaseParser):
         src_port = match.group("src_port")
         dst_port = match.group("dst_port")
         
-        # Determine action from log content
         action = "connection_allowed"
         outcome = "success"
         
@@ -143,7 +116,6 @@ class FirewallParser(BaseParser):
         return event
     
     def _parse_windows_fw(self, match: re.Match, raw_log: str) -> ParsedEvent:
-        """Parse Windows Firewall log."""
         date_str = match.group("date")
         time_str = match.group("time")
         action = match.group("action").upper()
@@ -153,13 +125,11 @@ class FirewallParser(BaseParser):
         src_port = match.group("src_port")
         dst_port = match.group("dst_port")
         
-        # Parse timestamp
         try:
             timestamp = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M:%S")
         except ValueError:
             timestamp = datetime.utcnow()
         
-        # Map action
         if action in ("DROP", "BLOCK", "DENY"):
             event_action = "connection_blocked"
             outcome = "failure"
@@ -187,8 +157,6 @@ class FirewallParser(BaseParser):
         return event
     
     def _parse_generic(self, raw_log: str) -> ParsedEvent:
-        """Parse generic firewall log using key=value pairs."""
-        # Extract all key=value pairs
         pairs = dict(self._kv.findall(raw_log))
         
         event = ParsedEvent(
@@ -200,7 +168,6 @@ class FirewallParser(BaseParser):
             source_type="firewall",
         )
         
-        # Map common fields
         field_mappings = {
             "source_ip": ["src", "srcip", "source", "saddr", "src_ip"],
             "destination_ip": ["dst", "dstip", "dest", "daddr", "dst_ip"],
@@ -223,7 +190,6 @@ class FirewallParser(BaseParser):
                         setattr(event, field, value)
                     break
         
-        # Determine action
         raw_upper = raw_log.upper()
         if any(kw in raw_upper for kw in ["BLOCK", "DROP", "DENY", "REJECT"]):
             event.event_action = "connection_blocked"

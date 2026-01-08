@@ -1,20 +1,12 @@
 #!/usr/bin/env python3
-"""
-Build update package for offline distribution.
-
-Usage:
-    python build_update_package.py --rules ./rules --models ./models --output ./updates
-"""
 
 import argparse
 import sys
 from pathlib import Path
 
-# Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.updates.bundle import UpdateBundle
-
 
 def main():
     parser = argparse.ArgumentParser(description="Build IsoLog update package")
@@ -65,13 +57,11 @@ def main():
     
     args = parser.parse_args()
     
-    # Validate inputs
     if not any([args.rules, args.models, args.mitre, args.intel]):
         print("Error: At least one content type must be specified")
         print("Use --rules, --models, --mitre, or --intel")
         sys.exit(1)
     
-    # Create bundle
     bundle = UpdateBundle()
     
     try:
@@ -87,7 +77,6 @@ def main():
         
         print(f"\n✓ Update package created: {package_path}")
         
-        # Sign if key provided
         if args.sign:
             sign_package(package_path, args.sign)
         
@@ -95,25 +84,19 @@ def main():
         print(f"Error creating package: {e}")
         sys.exit(1)
 
-
 def sign_package(package_path: str, private_key_path: str):
-    """Sign the package with Ed25519."""
     try:
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric import ed25519
         
-        # Load private key
         with open(private_key_path, "rb") as f:
             private_key = serialization.load_pem_private_key(f.read(), password=None)
         
-        # Read package
         with open(package_path, "rb") as f:
             package_data = f.read()
         
-        # Sign
         signature = private_key.sign(package_data)
         
-        # Save signature
         sig_path = package_path + ".sig"
         with open(sig_path, "wb") as f:
             f.write(signature)
@@ -124,7 +107,6 @@ def sign_package(package_path: str, private_key_path: str):
         print("Warning: cryptography not installed, skipping signature")
     except Exception as e:
         print(f"Warning: Failed to sign package: {e}")
-
 
 if __name__ == "__main__":
     main()

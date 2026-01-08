@@ -1,6 +1,3 @@
-"""
-IsoLog Anomaly Detection Package
-"""
 
 from .detector import AnomalyDetector
 from .one_class_svm import OneClassSVMDetector

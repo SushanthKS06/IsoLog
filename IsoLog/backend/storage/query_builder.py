@@ -1,8 +1,3 @@
-"""
-IsoLog Query Builder
-
-Flexible query construction for events and alerts.
-"""
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -11,25 +6,19 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from sqlalchemy import and_, or_, not_, desc, asc
 from sqlalchemy.orm import Query
 
-
 @dataclass
 class QueryFilter:
-    """Single query filter."""
     field: str
     operator: str  # eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, is_null, is_not_null
     value: Any = None
 
-
 @dataclass
 class QuerySort:
-    """Sort specification."""
     field: str
     direction: str = "desc"  # asc or desc
 
-
 @dataclass
 class QuerySpec:
-    """Complete query specification."""
     filters: List[QueryFilter] = field(default_factory=list)
     sorts: List[QuerySort] = field(default_factory=list)
     limit: int = 50
@@ -37,18 +26,7 @@ class QuerySpec:
     search_query: Optional[str] = None
     search_fields: List[str] = field(default_factory=list)
 
-
 class QueryBuilder:
-    """
-    Build SQLAlchemy queries from specifications.
-    
-    Supports:
-    - Multiple filter operators
-    - AND/OR logic
-    - Sorting
-    - Pagination
-    - Full-text search
-    """
     
     OPERATORS = {
         "eq": lambda col, val: col == val,
@@ -68,42 +46,24 @@ class QueryBuilder:
     }
     
     def __init__(self, model_class):
-        """
-        Initialize query builder.
-        
-        Args:
-            model_class: SQLAlchemy model class
-        """
         self.model = model_class
     
     def build(self, spec: QuerySpec) -> Query:
-        """
-        Build query from specification.
-        
-        Args:
-            spec: Query specification
-            
-        Returns:
-            SQLAlchemy query
-        """
         from sqlalchemy.orm import Session
         from sqlalchemy import select
         
         query = select(self.model)
         
-        # Apply filters
         if spec.filters:
             conditions = self._build_filters(spec.filters)
             if conditions:
                 query = query.where(and_(*conditions))
         
-        # Apply search
         if spec.search_query and spec.search_fields:
             search_conditions = self._build_search(spec.search_query, spec.search_fields)
             if search_conditions:
                 query = query.where(or_(*search_conditions))
         
-        # Apply sorting
         if spec.sorts:
             for sort in spec.sorts:
                 column = getattr(self.model, sort.field, None)
@@ -113,13 +73,11 @@ class QueryBuilder:
                     else:
                         query = query.order_by(asc(column))
         
-        # Apply pagination
         query = query.offset(spec.offset).limit(spec.limit)
         
         return query
     
     def _build_filters(self, filters: List[QueryFilter]) -> List:
-        """Build filter conditions."""
         conditions = []
         
         for f in filters:
@@ -140,7 +98,6 @@ class QueryBuilder:
         return conditions
     
     def _build_search(self, query: str, fields: List[str]) -> List:
-        """Build search conditions."""
         conditions = []
         
         for field_name in fields:
@@ -151,15 +108,6 @@ class QueryBuilder:
         return conditions
     
     def count(self, spec: QuerySpec) -> Query:
-        """
-        Build count query.
-        
-        Args:
-            spec: Query specification (pagination ignored)
-            
-        Returns:
-            Count query
-        """
         from sqlalchemy import select, func
         
         query = select(func.count()).select_from(self.model)
@@ -176,9 +124,7 @@ class QueryBuilder:
         
         return query
 
-
 class EventQueryBuilder(QueryBuilder):
-    """Query builder for Events."""
     
     SEARCHABLE_FIELDS = ["message", "host_name", "user_name", "source_ip", "event_action"]
     
@@ -200,7 +146,6 @@ class EventQueryBuilder(QueryBuilder):
         sort_by: str = "timestamp",
         sort_dir: str = "desc",
     ) -> QuerySpec:
-        """Build query spec from common parameters."""
         filters = []
         
         if start_time:
@@ -225,9 +170,7 @@ class EventQueryBuilder(QueryBuilder):
             search_fields=self.SEARCHABLE_FIELDS if search else [],
         )
 
-
 class AlertQueryBuilder(QueryBuilder):
-    """Query builder for Alerts."""
     
     SEARCHABLE_FIELDS = ["rule_name", "rule_description"]
     
@@ -250,7 +193,6 @@ class AlertQueryBuilder(QueryBuilder):
         sort_by: str = "created_at",
         sort_dir: str = "desc",
     ) -> QuerySpec:
-        """Build query spec from common parameters."""
         filters = []
         
         if severity:

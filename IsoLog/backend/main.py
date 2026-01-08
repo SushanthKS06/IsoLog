@@ -1,8 +1,3 @@
-"""
-IsoLog - Portable SIEM for Isolated Networks
-
-Main entry point for the application.
-"""
 
 import logging
 import sys
@@ -10,23 +5,17 @@ from pathlib import Path
 
 import uvicorn
 
-# Add backend to path for relative imports
 sys.path.insert(0, str(Path(__file__).parent))
-# Also add parent directory so 'backend' module can be found
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import get_settings
 
-
 def setup_logging():
-    """Configure logging."""
     settings = get_settings()
     
-    # Create logs directory
     log_path = settings.resolve_path(settings.logging.file_path)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Configure logging
     level = getattr(logging, settings.logging.level.upper(), logging.INFO)
     
     logging.basicConfig(
@@ -38,13 +27,10 @@ def setup_logging():
         ],
     )
     
-    # Quiet noisy loggers
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("watchdog").setLevel(logging.WARNING)
 
-
 def main():
-    """Main entry point."""
     setup_logging()
     logger = logging.getLogger(__name__)
     
@@ -58,7 +44,6 @@ def main():
     logger.info(f"  Debug: {settings.server.debug}")
     logger.info("=" * 60)
     
-    # Ensure data directories exist
     data_dirs = [
         settings.resolve_path("data"),
         settings.resolve_path("data/logs"),
@@ -71,7 +56,6 @@ def main():
     for dir_path in data_dirs:
         dir_path.mkdir(parents=True, exist_ok=True)
     
-    # Run server
     uvicorn.run(
         "backend.api.main:app",
         host=settings.server.host,
@@ -79,7 +63,6 @@ def main():
         reload=settings.server.debug,
         workers=1 if settings.server.debug else settings.server.workers,
     )
-
 
 if __name__ == "__main__":
     main()

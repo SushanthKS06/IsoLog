@@ -1,8 +1,3 @@
-"""
-IsoLog Report Generator
-
-Main report generation orchestrator.
-"""
 
 import logging
 from datetime import datetime, timedelta
@@ -15,26 +10,9 @@ from .exporters.json_exporter import JSONExporter
 
 logger = logging.getLogger(__name__)
 
-
 class ReportGenerator:
-    """
-    Generate security reports in multiple formats.
-    
-    Report types:
-    - Executive summary
-    - Alert details
-    - Event timeline
-    - MITRE coverage
-    - Integrity verification
-    """
     
     def __init__(self, output_directory: str):
-        """
-        Initialize report generator.
-        
-        Args:
-            output_directory: Directory to save reports
-        """
         self.output_dir = Path(output_directory)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
@@ -49,18 +27,6 @@ class ReportGenerator:
         period_days: int = 7,
         format: str = "pdf",
     ) -> str:
-        """
-        Generate executive summary report.
-        
-        Args:
-            stats: Dashboard statistics
-            alerts: Recent alerts
-            period_days: Report period
-            format: Output format (pdf, html)
-            
-        Returns:
-            Path to generated report
-        """
         report_data = {
             "title": "IsoLog Security Executive Summary",
             "generated_at": datetime.utcnow().isoformat(),
@@ -88,17 +54,6 @@ class ReportGenerator:
         format: str = "csv",
         include_details: bool = True,
     ) -> str:
-        """
-        Generate detailed alert report.
-        
-        Args:
-            alerts: Alert data
-            format: Output format (csv, json, pdf)
-            include_details: Include full alert details
-            
-        Returns:
-            Path to generated report
-        """
         filename = f"alerts_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
         
         if format == "csv":
@@ -119,16 +74,6 @@ class ReportGenerator:
         events: List[Dict[str, Any]],
         format: str = "csv",
     ) -> str:
-        """
-        Generate event log report.
-        
-        Args:
-            events: Event data
-            format: Output format (csv, json)
-            
-        Returns:
-            Path to generated report
-        """
         filename = f"events_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
         
         if format == "csv":
@@ -147,17 +92,6 @@ class ReportGenerator:
         alerts: List[Dict[str, Any]],
         format: str = "pdf",
     ) -> str:
-        """
-        Generate MITRE ATT&CK coverage report.
-        
-        Args:
-            mitre_stats: MITRE statistics
-            alerts: Related alerts
-            format: Output format (pdf, json)
-            
-        Returns:
-            Path to generated report
-        """
         report_data = {
             "title": "MITRE ATT&CK Coverage Report",
             "generated_at": datetime.utcnow().isoformat(),
@@ -183,16 +117,6 @@ class ReportGenerator:
         verification_result: Dict[str, Any],
         format: str = "pdf",
     ) -> str:
-        """
-        Generate log integrity verification report.
-        
-        Args:
-            verification_result: Integrity verification data
-            format: Output format (pdf, json)
-            
-        Returns:
-            Path to generated report
-        """
         report_data = {
             "title": "Log Integrity Verification Report",
             "generated_at": datetime.utcnow().isoformat(),
@@ -212,7 +136,6 @@ class ReportGenerator:
         return str(path)
     
     def _get_severity_breakdown(self, alerts: List[Dict[str, Any]]) -> Dict[str, int]:
-        """Get alert count by severity."""
         breakdown = {"critical": 0, "high": 0, "medium": 0, "low": 0, "informational": 0}
         
         for alert in alerts:
@@ -223,7 +146,6 @@ class ReportGenerator:
         return breakdown
     
     def _group_alerts_by_technique(self, alerts: List[Dict[str, Any]]) -> Dict[str, List[Dict]]:
-        """Group alerts by MITRE technique."""
         grouped = {}
         
         for alert in alerts:

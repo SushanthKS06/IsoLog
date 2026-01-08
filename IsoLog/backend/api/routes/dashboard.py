@@ -1,6 +1,3 @@
-"""
-IsoLog Dashboard API Routes
-"""
 
 from datetime import datetime, timedelta
 from typing import Optional
@@ -15,9 +12,7 @@ from ...storage.alert_store import AlertStore
 
 router = APIRouter()
 
-
 class DashboardStatsResponse(BaseModel):
-    """Dashboard statistics response."""
     total_events: int
     total_alerts: int
     critical_alerts: int
@@ -25,19 +20,16 @@ class DashboardStatsResponse(BaseModel):
     events_today: int
     alerts_today: int
 
-
 @router.get("/stats")
 async def get_dashboard_stats(
     db: AsyncSession = Depends(get_db),
 ):
-    """Get main dashboard statistics."""
     event_store = EventStore(db)
     alert_store = AlertStore(db)
     
     now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     
-    # Get counts
     total_events = await event_store.count()
     events_today = await event_store.count(start_time=today_start)
     
@@ -56,13 +48,11 @@ async def get_dashboard_stats(
         alerts_today=alerts_today,
     )
 
-
 @router.get("/recent-alerts")
 async def get_recent_alerts(
     limit: int = 10,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get most recent alerts."""
     store = AlertStore(db)
     alerts = await store.query(limit=limit, include_event=True)
     
@@ -80,20 +70,17 @@ async def get_recent_alerts(
         ]
     }
 
-
 @router.get("/timeline")
 async def get_dashboard_timeline(
     hours: int = 24,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get event/alert timeline for dashboard."""
     event_store = EventStore(db)
     alert_store = AlertStore(db)
     
     now = datetime.utcnow()
     start_time = now - timedelta(hours=hours)
     
-    # Get hourly buckets
     bucket_minutes = 60 if hours <= 24 else 360
     
     alert_timeline = await alert_store.get_timeline(
@@ -109,14 +96,12 @@ async def get_dashboard_timeline(
         "timeline": alert_timeline,
     }
 
-
 @router.get("/top-hosts")
 async def get_top_hosts(
     hours: int = 24,
     limit: int = 10,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get hosts with most events."""
     store = EventStore(db)
     
     now = datetime.utcnow()
@@ -129,19 +114,16 @@ async def get_top_hosts(
         "period_hours": hours,
     }
 
-
 @router.get("/detection-summary")
 async def get_detection_summary(
     hours: int = 24,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get detection method summary."""
     store = AlertStore(db)
     
     now = datetime.utcnow()
     start_time = now - timedelta(hours=hours)
     
-    # Get alerts by detection type
     all_alerts = await store.query(
         start_time=start_time,
         end_time=now,

@@ -1,6 +1,3 @@
-"""
-Tests for detection engine.
-"""
 
 import pytest
 from unittest.mock import Mock, patch
@@ -8,9 +5,7 @@ from unittest.mock import Mock, patch
 from backend.detection.engine import DetectionEngine, Detection
 from backend.detection.scorer import ThreatScorer
 
-
 class TestThreatScorer:
-    """Tests for threat scorer."""
     
     @pytest.fixture
     def scorer(self):
@@ -75,13 +70,10 @@ class TestThreatScorer:
         score = scorer.calculate_score(detections)
         assert score > 40  # Combined should be higher
 
-
 class TestDetectionEngine:
-    """Tests for detection engine."""
     
     @pytest.fixture
     def engine(self):
-        # Create engine with minimal config
         with patch.dict('os.environ', {'ISOLOG_DETECTION__SIGMA__ENABLED': 'false'}):
             engine = DetectionEngine(
                 sigma_enabled=False,
@@ -107,7 +99,6 @@ class TestDetectionEngine:
         assert isinstance(detections, list)
     
     def test_heuristic_detection(self, engine):
-        # Suspicious command line
         event = {
             "timestamp": "2024-12-31T10:00:00Z",
             "event": {"action": "process_start"},
@@ -118,12 +109,9 @@ class TestDetectionEngine:
         }
         
         detections = engine.analyze(event)
-        # Should detect suspicious encoded command
         assert isinstance(detections, list)
 
-
 class TestDetection:
-    """Tests for Detection dataclass."""
     
     def test_detection_creation(self):
         detection = Detection(

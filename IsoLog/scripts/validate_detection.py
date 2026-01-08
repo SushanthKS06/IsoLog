@@ -1,19 +1,4 @@
 #!/usr/bin/env python
-"""
-IsoLog Detection Validation Script
-
-Validates IsoLog's detection capabilities using OTRF Security-Datasets (Mordor).
-This script:
-1. Loads metadata YAMLs to get expected MITRE techniques
-2. Loads corresponding attack event logs
-3. Runs events through the DetectionEngine
-4. Compares detected techniques vs expected
-5. Generates a validation report
-
-Usage:
-    python scripts/validate_detection.py --category credential_access --limit 5
-    python scripts/validate_detection.py --dataset SDWIN-190301125905
-"""
 
 import argparse
 import asyncio
@@ -27,7 +12,6 @@ from typing import Any, Dict, List, Optional, Set
 
 import yaml
 
-# Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.detection.engine import DetectionEngine
@@ -39,10 +23,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class ValidationResult:
-    """Result of validating one dataset."""
     dataset_id: str
     dataset_title: str
     expected_techniques: Set[str]
@@ -53,7 +35,6 @@ class ValidationResult:
     
     @property
     def precision(self) -> float:
-        """What % of our detections were relevant."""
         if not self.detected_techniques:
             return 0.0
         matched = len(self.detected_techniques & self.expected_techniques)
@@ -61,16 +42,13 @@ class ValidationResult:
     
     @property
     def recall(self) -> float:
-        """What % of expected techniques did we catch."""
         if not self.expected_techniques:
             return 1.0
         matched = len(self.detected_techniques & self.expected_techniques)
         return matched / len(self.expected_techniques)
 
-
 @dataclass
 class ValidationReport:
-    """Aggregate validation report."""
     results: List[ValidationResult] = field(default_factory=list)
     
     @property
@@ -110,9 +88,7 @@ class ValidationReport:
             print(f"      Detected: {sorted(result.detected_techniques)}")
             print(f"      Events: {result.total_events}, With Alerts: {result.events_with_alerts}")
 
-
 class DetectionValidator:
-    """Validates IsoLog detection using Security-Datasets."""
     
     def __init__(self, datasets_path: Path, config_path: Optional[Path] = None):
         self.datasets_path = datasets_path
@@ -122,17 +98,14 @@ class DetectionValidator:
         self.report = ValidationReport()
     
     async def initialize(self):
-        """Initialize the detection engine."""
         await self.engine.initialize()
         logger.info("Detection engine initialized")
     
     def load_metadata(self, yaml_path: Path) -> Dict[str, Any]:
-        """Load dataset metadata YAML."""
         with open(yaml_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
     
     def extract_expected_techniques(self, metadata: Dict[str, Any]) -> Set[str]:
-        """Extract MITRE technique IDs from metadata."""
         techniques = set()
         
         attack_mappings = metadata.get("attack_mappings", [])
@@ -148,11 +121,9 @@ class DetectionValidator:
         return techniques
     
     def find_data_file(self, metadata: Dict[str, Any]) -> Optional[Path]:
-        """Find the data ZIP file for this metadata."""
         files = metadata.get("files", [])
         for file_info in files:
             if file_info.get("type") == "Host":
-                # Parse the URL to get relative path
                 url = file_info.get("link", "")
                 if "datasets/" in url:
                     rel_path = url.split("datasets/")[-1]
@@ -162,7 +133,6 @@ class DetectionValidator:
         return None
     
     def load_events_from_zip(self, zip_path: Path, max_events: int = 1000) -> List[Dict[str, Any]]:
-        """Load events from a ZIP file containing JSON."""
         events = []
         
         with zipfile.ZipFile(zip_path, "r") as zf:
@@ -170,7 +140,6 @@ class DetectionValidator:
                 if name.endswith(".json"):
                     with zf.open(name) as f:
                         content = f.read().decode("utf-8")
-                        # Handle JSONL (one JSON per line) or array
                         for line in content.strip().split("\n"):
                             if line.strip():
                                 try:
@@ -183,33 +152,28 @@ class DetectionValidator:
         return events
     
     async def validate_dataset(self, metadata_path: Path, max_events: int = 10000) -> Optional[ValidationResult]:
-        """Validate a single dataset."""
         metadata = self.load_metadata(metadata_path)
         dataset_id = metadata.get("id", metadata_path.stem)
         dataset_title = metadata.get("title", "Unknown")
         
         logger.info(f"Validating: {dataset_id} - {dataset_title}")
         
-        # Get expected techniques
         expected = self.extract_expected_techniques(metadata)
         if not expected:
             logger.warning(f"  No MITRE techniques in metadata, skipping")
             return None
         
-        # Find data file
         data_file = self.find_data_file(metadata)
         if not data_file:
             logger.warning(f"  Data file not found, skipping")
             return None
         
-        # Load events
         events = self.load_events_from_zip(data_file, max_events)
         logger.info(f"  Loaded {len(events)} events")
         
         if not events:
             return None
         
-        # Run detection
         detected_techniques: Set[str] = set()
         events_with_alerts = 0
         
@@ -224,7 +188,6 @@ class DetectionValidator:
                 for detection in detections:
                     detected_techniques.update(detection.mitre_techniques)
         
-        # Determine match - at least one expected technique was detected
         matched = bool(detected_techniques & expected)
         
         result = ValidationResult(
@@ -242,14 +205,12 @@ class DetectionValidator:
         return result
     
     async def validate_category(self, category: str, limit: int = 10) -> ValidationReport:
-        """Validate all datasets in a category."""
         category_path = self.datasets_path / "datasets" / "atomic" / "windows" / category
         
         if not category_path.exists():
             logger.error(f"Category path not found: {category_path}")
             return self.report
         
-        # Find metadata files for this category
         metadata_files = []
         for yaml_file in self.metadata_path.glob("*.yaml"):
             metadata = self.load_metadata(yaml_file)
@@ -270,7 +231,6 @@ class DetectionValidator:
         return self.report
     
     async def validate_single(self, dataset_id: str) -> ValidationReport:
-        """Validate a single dataset by ID."""
         yaml_file = self.metadata_path / f"{dataset_id}.yaml"
         
         if not yaml_file.exists():
@@ -282,7 +242,6 @@ class DetectionValidator:
             self.report.results.append(result)
         
         return self.report
-
 
 async def main():
     parser = argparse.ArgumentParser(
@@ -325,11 +284,9 @@ async def main():
     elif args.category:
         report = await validator.validate_category(args.category, limit=args.limit)
     else:
-        # Default: validate credential_access
         report = await validator.validate_category("credential_access", limit=args.limit)
     
     report.print_summary()
-
 
 if __name__ == "__main__":
     asyncio.run(main())

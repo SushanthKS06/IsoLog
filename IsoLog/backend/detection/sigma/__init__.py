@@ -1,6 +1,3 @@
-"""
-IsoLog Sigma Detection Package
-"""
 
 from .matcher import SigmaMatcher
 

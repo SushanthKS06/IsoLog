@@ -1,6 +1,3 @@
-"""
-IsoLog Search API Routes
-"""
 
 from typing import List, Optional
 
@@ -12,18 +9,14 @@ from ...storage.database import get_db
 
 router = APIRouter()
 
-
 class SearchRequest(BaseModel):
-    """Search request model."""
     query: str
     event_types: Optional[List[str]] = None
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     limit: int = 50
 
-
 class SearchResult(BaseModel):
-    """Search result model."""
     id: str
     type: str  # event, alert
     timestamp: str
@@ -31,28 +24,17 @@ class SearchResult(BaseModel):
     highlight: dict
     data: dict
 
-
 class SearchResponse(BaseModel):
-    """Search response model."""
     results: List[SearchResult]
     total: int
     query: str
     took_ms: int
-
 
 @router.post("", response_model=SearchResponse)
 async def search(
     request: SearchRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Full-text search across events and alerts.
-    
-    Searches in:
-    - Event messages
-    - Alert rule names and descriptions
-    - Host names, user names, IPs
-    """
     import time
     from datetime import datetime
     from sqlalchemy import or_, select
@@ -64,7 +46,6 @@ async def search(
     query_lower = request.query.lower()
     results = []
     
-    # Search events
     event_query = select(Event).where(
         or_(
             Event.message.ilike(f"%{request.query}%"),
@@ -79,13 +60,11 @@ async def search(
     events = event_result.scalars().all()
     
     for event in events:
-        # Calculate simple relevance score
         score = 0.0
         highlight = {}
         
         if event.message and query_lower in event.message.lower():
             score += 0.5
-            # Find match position for highlight
             idx = event.message.lower().find(query_lower)
             start_idx = max(0, idx - 50)
             end_idx = min(len(event.message), idx + len(request.query) + 50)
@@ -113,7 +92,6 @@ async def search(
             },
         ))
     
-    # Search alerts
     alert_query = select(Alert).where(
         or_(
             Alert.rule_name.ilike(f"%{request.query}%"),
@@ -149,7 +127,6 @@ async def search(
             },
         ))
     
-    # Sort by score
     results.sort(key=lambda x: x.score, reverse=True)
     results = results[:request.limit]
     
@@ -162,19 +139,16 @@ async def search(
         took_ms=took_ms,
     )
 
-
 @router.get("/suggestions")
 async def get_search_suggestions(
     q: str = Query(..., min_length=2),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get search suggestions based on query prefix."""
     from sqlalchemy import select, distinct
     from ...storage.models import Event
     
     suggestions = []
     
-    # Get matching host names
     host_result = await db.execute(
         select(distinct(Event.host_name))
         .where(Event.host_name.ilike(f"{q}%"))
@@ -185,7 +159,6 @@ async def get_search_suggestions(
         for row in host_result if row[0]
     ])
     
-    # Get matching user names
     user_result = await db.execute(
         select(distinct(Event.user_name))
         .where(Event.user_name.ilike(f"{q}%"))

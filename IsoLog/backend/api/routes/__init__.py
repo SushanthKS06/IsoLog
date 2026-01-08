@@ -1,3 +1,0 @@
-"""
-IsoLog API Routes Package
-"""
